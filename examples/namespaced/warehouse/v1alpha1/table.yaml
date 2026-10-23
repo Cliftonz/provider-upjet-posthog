@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-warehouse-table-credentials
+  namespace: default
+type: Opaque
+stringData:
+  accessKey: ${WAREHOUSE_ACCESS_KEY}
+  accessSecret: ${WAREHOUSE_ACCESS_SECRET}
+---
+apiVersion: warehouse.posthog.m.clifton.quest/v1alpha1
+kind: Table
+metadata:
+  name: orders
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: warehouse/v1alpha1/table
+    uptest.upbound.io/timeout: "600"
+spec:
+  forProvider:
+    name: orders
+    format: Parquet
+    urlPattern: ${WAREHOUSE_URL}/orders/*.parquet
+    accessKeySecretRef:
+      name: example-warehouse-table-credentials
+      key: accessKey
+    accessSecretSecretRef:
+      name: example-warehouse-table-credentials
+      key: accessSecret
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

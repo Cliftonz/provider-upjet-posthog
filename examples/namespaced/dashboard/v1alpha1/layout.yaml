@@ -1,0 +1,49 @@
+apiVersion: dashboard.posthog.m.clifton.quest/v1alpha1
+kind: Dashboard
+metadata:
+  name: example-layout-dashboard
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/layout
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-layout-dashboard
+---
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  name: example-layout-insight
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/layout
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-layout-insight
+    queryJson: '{"kind":"InsightVizNode","source":{"kind":"TrendsQuery","series":[{"kind":"EventsNode","event":"$pageview","math":"total"}]}}'
+---
+apiVersion: dashboard.posthog.m.clifton.quest/v1alpha1
+kind: Layout
+metadata:
+  name: example-layout
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/layout
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    dashboardIdRef:
+      name: example-layout-dashboard
+    tiles:
+      - textBody: "## Key metrics"
+        layoutsJson: '{"sm":{"x":0,"y":0,"w":12,"h":2},"xs":{"x":0,"y":0,"w":1,"h":2}}'
+      - insightIdRef:
+          name: example-layout-insight
+        layoutsJson: '{"sm":{"x":0,"y":2,"w":6,"h":5},"xs":{"x":0,"y":2,"w":1,"h":5}}'

@@ -1,0 +1,21 @@
+apiVersion: cdp.posthog.m.clifton.quest/v1alpha1
+kind: HogFunction
+metadata:
+  name: webhook-destination
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: cdp/v1alpha1/hogfunction
+spec:
+  forProvider:
+    name: example-webhook-destination
+    description: Webhook destination managed by Crossplane
+    type: destination
+    enabled: true
+    templateId: template-webhook
+    inputsJson: |
+      {"url":{"value":"https://example.com/webhook","templating":"hog"},"method":{"value":"POST","templating":"hog"},"body":{"value":{"event":"{event.event}","timestamp":"{event.timestamp}"},"templating":"hog"},"headers":{"value":{"Content-Type":"application/json"},"templating":"hog"}}
+    filtersJson: |
+      {"events":[{"id":"$pageview","type":"events"}]}
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

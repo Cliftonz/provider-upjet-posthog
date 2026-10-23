@@ -1,0 +1,36 @@
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Member
+metadata:
+  name: example-projectmember
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/member
+spec:
+  forProvider:
+    projectIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example-project
+    organizationMemberRef:
+      name: example-projectmember-orgmember
+    accessLevel: member
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: organization.posthog.m.clifton.quest/v1alpha1
+kind: Member
+metadata:
+  name: example-projectmember-orgmember
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: organization/v1alpha1/member
+    e2e.posthog.m.clifton.quest/substitute: POSTHOG_TEST_USER_UUID
+spec:
+  forProvider:
+    organizationId: "@current"
+    userUuid: ${POSTHOG_TEST_USER_UUID}
+    level: member
+    retainOnDestroy: true
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

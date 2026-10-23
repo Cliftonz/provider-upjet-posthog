@@ -1,0 +1,15 @@
+apiVersion: organization.posthog.m.clifton.quest/v1alpha1
+kind: ProxyRecord
+metadata:
+  name: example-proxyrecord
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: organization/v1alpha1/proxyrecord
+    uptest.upbound.io/timeout: "600"
+spec:
+  forProvider:
+    organizationId: "@current"
+    domain: proxy-e2e.example.com
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

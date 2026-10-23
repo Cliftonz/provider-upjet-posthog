@@ -1,0 +1,35 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  name: example-subscription-insight
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/subscription
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-subscription-insight
+    queryJson: '{"kind":"InsightVizNode","source":{"kind":"TrendsQuery","series":[{"kind":"EventsNode","event":"$pageview","math":"total"}]}}'
+---
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Subscription
+metadata:
+  name: example-subscription
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/subscription
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    title: example-subscription
+    insightIdRef:
+      name: example-subscription-insight
+    targetType: email
+    targetValue: uptest@example.com
+    frequency: daily
+    interval: 1
+    startDate: "2026-12-01T09:00:00Z"

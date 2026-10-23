@@ -1,0 +1,47 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  name: example-maintenance-lock
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/featureflag-lock
+    e2e.posthog.m.clifton.quest/toggle-field: spec.forProvider.active
+    e2e.posthog.m.clifton.quest/toggle-note: the e2e runner patches spec.forProvider.active to false after creation to test toggling
+spec:
+  forProvider:
+    key: example-maintenance-lock
+    name: Example maintenance lock
+    active: true
+    filters: |
+      {
+        "groups": [
+          {
+            "properties": [
+              {"key": "app_role", "type": "person", "operator": "exact", "value": ["staff", "admin"]}
+            ],
+            "rollout_percentage": 100,
+            "variant": "notice"
+          },
+          {
+            "properties": [],
+            "rollout_percentage": 100
+          }
+        ],
+        "multivariate": {
+          "variants": [
+            {"key": "off", "name": "Off", "rollout_percentage": 100},
+            {"key": "notice", "name": "Notice", "rollout_percentage": 0},
+            {"key": "locked", "name": "Locked", "rollout_percentage": 0}
+          ]
+        },
+        "payloads": {
+          "off": "{\"title\":\"\",\"start\":null,\"end\":null}",
+          "notice": "{\"title\":\"Scheduled maintenance\",\"start\":\"2026-01-01T02:00:00Z\",\"end\":\"2026-01-01T04:00:00Z\"}",
+          "locked": "{\"title\":\"Down for maintenance\",\"start\":\"2026-01-01T02:00:00Z\",\"end\":\"2026-01-01T04:00:00Z\"}"
+        }
+      }
+    tags:
+      - managed-by:crossplane
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

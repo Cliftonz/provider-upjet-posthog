@@ -1,0 +1,15 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: InsightVariable
+metadata:
+  name: example-insightvariable
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insightvariable
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-environment
+    type: String
+    defaultValueJson: '"prod"'

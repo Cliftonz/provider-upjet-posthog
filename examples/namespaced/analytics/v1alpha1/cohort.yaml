@@ -1,0 +1,15 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Cohort
+metadata:
+  name: example-cohort
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/cohort
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-cohort
+    description: Persons with an example.com email
+    filters: '{"properties":{"type":"AND","values":[{"type":"person","key":"email","operator":"icontains","value":"@example.com"}]}}'

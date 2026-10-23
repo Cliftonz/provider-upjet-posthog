@@ -1,0 +1,17 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Action
+metadata:
+  name: example-action
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/action
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-action
+    description: Tracks visits to the pricing page
+    tags:
+      - marketing
+    stepsJson: '[{"event":"$pageview","url":"https://example.com/pricing","url_matching":"exact"}]'

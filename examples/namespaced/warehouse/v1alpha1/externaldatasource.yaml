@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-externaldatasource-inputs
+  namespace: default
+type: Opaque
+stringData:
+  jobInputs: '{"host":"postgres.example.internal","port":5432,"database":"app","user":"readonly","password":"change-me","schema":"public"}'
+---
+apiVersion: warehouse.posthog.m.clifton.quest/v1alpha1
+kind: ExternalDataSource
+metadata:
+  name: postgres-source
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: warehouse/v1alpha1/externaldatasource
+    upjet.upbound.io/manual-intervention: "requires a reachable external source"
+spec:
+  forProvider:
+    sourceType: Postgres
+    prefix: example_
+    schemas:
+      - users
+      - orders
+    jobInputsJsonSecretRef:
+      name: example-externaldatasource-inputs
+      key: jobInputs
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

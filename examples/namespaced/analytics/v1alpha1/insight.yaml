@@ -1,0 +1,14 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  name: example-insight
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insight
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-insight
+    queryJson: '{"kind":"InsightVizNode","source":{"kind":"TrendsQuery","series":[{"kind":"EventsNode","event":"$pageview","math":"total"}]}}'

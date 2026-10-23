@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-alertdestination-webhook
+  namespace: default
+type: Opaque
+stringData:
+  url: https://example.com/hooks/oncall
+---
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: AlertDestination
+metadata:
+  name: checkout-errors-oncall
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alertdestination
+spec:
+  forProvider:
+    type: webhook
+    alertIdRef:
+      name: checkout-errors
+    webhookUrlSecretRef:
+      name: example-alertdestination-webhook
+      key: url
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

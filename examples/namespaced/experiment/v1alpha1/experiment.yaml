@@ -1,0 +1,46 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  name: example-pricing-test
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: experiment/v1alpha1/experiment
+spec:
+  forProvider:
+    key: example-pricing-page-test
+    filters: |
+      {
+        "groups": [{"properties": [], "rollout_percentage": 100}],
+        "multivariate": {
+          "variants": [
+            {"key": "control", "name": "Original", "rollout_percentage": 50},
+            {"key": "test", "name": "Redesign", "rollout_percentage": 50}
+          ]
+        }
+      }
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: experiment.posthog.m.clifton.quest/v1alpha1
+kind: Experiment
+metadata:
+  name: example-pricing-test
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: experiment/v1alpha1/experiment
+    uptest.upbound.io/timeout: "600"
+spec:
+  forProvider:
+    name: Pricing page test
+    description: Does the new pricing layout lift conversion?
+    featureFlagKey: example-pricing-page-test
+    metrics: |
+      [{"kind":"ExperimentMetric","metric_type":"mean","name":"Revenue per user","source":{"kind":"EventsNode","event":"purchase","math":"sum"}}]
+    exposureCriteria: |
+      {"filterTestAccounts":true}
+    status:
+      state: running
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

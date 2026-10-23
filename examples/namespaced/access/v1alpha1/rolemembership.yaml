@@ -1,0 +1,16 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: RoleMembership
+metadata:
+  name: example-rolemembership
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/rolemembership
+    uptest.upbound.io/timeout: "300"
+spec:
+  forProvider:
+    roleIdRef:
+      name: example-role
+    userUuid: ${POSTHOG_TEST_USER_UUID}
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

@@ -1,0 +1,14 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: Role
+metadata:
+  name: example-role
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/role
+    uptest.upbound.io/timeout: "300"
+spec:
+  forProvider:
+    name: example-role
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

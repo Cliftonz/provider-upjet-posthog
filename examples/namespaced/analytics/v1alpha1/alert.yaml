@@ -1,0 +1,36 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  name: example-alert-insight
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/alert
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-alert-insight
+    queryJson: '{"kind":"InsightVizNode","source":{"kind":"TrendsQuery","series":[{"kind":"EventsNode","event":"$pageview","math":"total"}]}}'
+---
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Alert
+metadata:
+  name: example-alert
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/alert
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-alert
+    insightRef:
+      name: example-alert-insight
+    subscribedUsers: []
+    conditionType: absolute_value
+    thresholdType: absolute
+    thresholdUpper: 10000
+    seriesIndex: 0
+    calculationInterval: daily

@@ -1,0 +1,34 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  name: example-new-editor
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/earlyaccessfeature
+spec:
+  forProvider:
+    key: example-new-editor
+    name: New editor beta
+    rolloutPercentage: 0
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: EarlyAccessFeature
+metadata:
+  name: example-new-editor
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/earlyaccessfeature
+spec:
+  forProvider:
+    name: New editor
+    stage: beta
+    description: A faster editor with live collaboration.
+    documentationUrl: https://example.com/docs/new-editor
+    featureFlagIdRef:
+      name: example-new-editor
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

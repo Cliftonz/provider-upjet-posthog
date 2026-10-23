@@ -1,0 +1,20 @@
+apiVersion: survey.posthog.m.clifton.quest/v1alpha1
+kind: Survey
+metadata:
+  name: example-nps
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: survey/v1alpha1/survey
+spec:
+  forProvider:
+    name: Example NPS
+    description: Quarterly NPS survey.
+    type: popover
+    schedule: once
+    questionsJson: |
+      [{"type":"rating","question":"How would you rate your experience?","scale":10,"buttonText":"Submit","isNpsQuestion":true}]
+    conditionsJson: |
+      {"url":"https://example.com/*"}
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

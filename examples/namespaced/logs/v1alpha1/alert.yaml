@@ -1,0 +1,24 @@
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: Alert
+metadata:
+  name: checkout-errors
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alert
+spec:
+  forProvider:
+    name: Checkout API errors
+    severityLevels:
+      - error
+      - fatal
+    serviceNames:
+      - checkout-api
+    thresholdCount: 10
+    thresholdOperator: above
+    windowMinutes: 10
+    evaluationPeriods: 3
+    datapointsToAlarm: 2
+    cooldownMinutes: 30
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

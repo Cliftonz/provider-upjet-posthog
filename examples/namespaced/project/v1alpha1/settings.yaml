@@ -1,0 +1,28 @@
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Settings
+metadata:
+  name: example-settings
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/settings
+spec:
+  forProvider:
+    projectIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example-project
+    heatmapsOptIn: true
+    sessionRecordingOptIn: true
+    surveysOptIn: true
+    anonymizeIps: false
+    cookielessServerHashMode: 0
+    appUrls:
+      - https://app.example.com
+    recordingDomains:
+      - https://app.example.com
+    capturePerformanceOptIn: true
+    sessionRecordingNetworkPayloadCaptureConfig:
+      recordHeaders: true
+      recordBody: false
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

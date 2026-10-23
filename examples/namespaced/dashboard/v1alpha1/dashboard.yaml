@@ -1,0 +1,16 @@
+apiVersion: dashboard.posthog.m.clifton.quest/v1alpha1
+kind: Dashboard
+metadata:
+  name: example-dashboard
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/dashboard
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-dashboard
+    description: Example dashboard
+    tags:
+      - example

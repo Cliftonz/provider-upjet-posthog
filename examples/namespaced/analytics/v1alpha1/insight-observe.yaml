@@ -1,0 +1,14 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  name: example-insight-observe
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insight-observe
+    crossplane.io/external-name: "${OBSERVED_INSIGHT_ID}"
+spec:
+  managementPolicies: ["Observe"]
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider: {}

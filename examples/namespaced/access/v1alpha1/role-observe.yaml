@@ -1,0 +1,14 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: Role
+metadata:
+  name: example-role-observe
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/role-observe
+    crossplane.io/external-name: ${OBSERVED_ROLE_ID}
+spec:
+  managementPolicies: ["Observe"]
+  forProvider: {}
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

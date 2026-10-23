@@ -1,0 +1,19 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  name: example-boolean
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/featureflag
+spec:
+  forProvider:
+    key: example-boolean-flag
+    name: Example boolean flag
+    active: true
+    filters: |
+      {"groups":[{"properties":[],"rollout_percentage":100}]}
+    tags:
+      - managed-by:crossplane
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

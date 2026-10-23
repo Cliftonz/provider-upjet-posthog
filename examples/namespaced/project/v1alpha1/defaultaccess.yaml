@@ -1,0 +1,16 @@
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: DefaultAccess
+metadata:
+  name: example-defaultaccess
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/defaultaccess
+spec:
+  forProvider:
+    projectIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example-project
+    accessLevel: member
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
