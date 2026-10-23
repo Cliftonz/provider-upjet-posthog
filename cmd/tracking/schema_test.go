@@ -19,6 +19,8 @@ func TestSchemaChanges(t *testing.T) {
 "posthog_kept": {"block": {
   "attributes": {
     "id": {"type": "string"},
+    "now_required": {"type": "string", "optional": true},
+    "still_required": {"type": "string", "required": true},
     "removed": {"type": "string"},
     "retyped": {"type": "string"},
     "list_retyped": {"type": ["list", "string"]},
@@ -34,10 +36,13 @@ func TestSchemaChanges(t *testing.T) {
 "posthog_kept": {"block": {
   "attributes": {
     "id": {"type": "string"},
-    "added": {"type": "string"},
-    "retyped": {"type": "number"},
+    "now_required": {"type": "string", "required": true},
+    "still_required": {"type": "string", "required": true},
+    "added": {"type": "string", "optional": true},
+    "added_required": {"type": "string", "required": true},
+    "retyped": {"type": "number", "required": true},
     "list_retyped": {"type": ["set", "string"]},
-    "nested": {"nested_type": {"nesting_mode": "single", "attributes": {"kept": {"type": "bool"}}}},
+    "nested": {"nested_type": {"nesting_mode": "single", "attributes": {"kept": {"type": "bool"}, "inner_required": {"type": "bool", "required": true}}}},
     "nesting": {"nested_type": {"nesting_mode": "list", "attributes": {"a": {"type": "bool"}}}}
   },
   "block_types": {
@@ -52,11 +57,14 @@ func TestSchemaChanges(t *testing.T) {
 	}
 	want := []string{
 		"posthog_gone",
+		"posthog_kept.added_required",
 		"posthog_kept.blk.x",
 		"posthog_kept.blk_gone",
 		"posthog_kept.list_retyped",
 		"posthog_kept.nested.inner",
+		"posthog_kept.nested.inner_required",
 		"posthog_kept.nesting",
+		"posthog_kept.now_required",
 		"posthog_kept.removed",
 		"posthog_kept.retyped",
 	}

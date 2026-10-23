@@ -54,7 +54,7 @@ func crdChanges(oldDir, newDir string) ([]string, error) {
 		changes = append(changes, versionChanges(name, o.Spec.Versions, n.Spec.Versions)...)
 	}
 	slices.Sort(changes)
-	return changes, nil
+	return slices.Compact(changes), nil
 }
 
 func versionChanges(crd string, o, n []apiextensionsv1.CustomResourceDefinitionVersion) []string {
@@ -78,7 +78,15 @@ func itemSchema(p *apiextensionsv1.JSONSchemaProps) *apiextensionsv1.JSONSchemaP
 	return p.Items.Schema
 }
 
+func valueSchema(p *apiextensionsv1.JSONSchemaProps) *apiextensionsv1.JSONSchemaProps {
+	if p.AdditionalProperties == nil {
+		return nil
+	}
+	return p.AdditionalProperties.Schema
+}
+
 func propertyChanges(prefix string, o, n *apiextensionsv1.JSONSchemaProps) []string {
+	path := strings.TrimSuffix(prefix, ".")
 	var changes []string
 	for name, op := range o.Properties {
 		p := prefix + name
@@ -89,13 +97,26 @@ func propertyChanges(prefix string, o, n *apiextensionsv1.JSONSchemaProps) []str
 		}
 		changes = append(changes, propertyChanges(p+".", &op, &np)...)
 	}
-	oi, ni := itemSchema(o), itemSchema(n)
-	if oi == nil {
-		return changes
+	for _, name := range n.Required {
+		if !slices.Contains(o.Required, name) {
+			changes = append(changes, prefix+name)
+		}
 	}
-	array := strings.TrimSuffix(prefix, ".")
-	if ni == nil || ni.Type != oi.Type {
-		return append(changes, array)
+	if slices.ContainsFunc(n.XValidations, func(nr apiextensionsv1.ValidationRule) bool {
+		return !slices.ContainsFunc(o.XValidations, func(or apiextensionsv1.ValidationRule) bool { return or.Rule == nr.Rule })
+	}) {
+		changes = append(changes, path)
 	}
-	return append(changes, propertyChanges(array+"[].", oi, ni)...)
+	changes = append(changes, subschemaChanges(path, "[]", itemSchema(o), itemSchema(n))...)
+	return append(changes, subschemaChanges(path, "{}", valueSchema(o), valueSchema(n))...)
+}
+
+func subschemaChanges(path, marker string, o, n *apiextensionsv1.JSONSchemaProps) []string {
+	if o == nil {
+		return nil
+	}
+	if n == nil || n.Type != o.Type {
+		return []string{path}
+	}
+	return propertyChanges(path+marker+".", o, n)
 }

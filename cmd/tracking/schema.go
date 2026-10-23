@@ -31,6 +31,7 @@ type tfBlockType struct {
 type tfAttribute struct {
 	Type       json.RawMessage `json:"type"`
 	NestedType *tfNestedType   `json:"nested_type"`
+	Required   bool            `json:"required"`
 }
 
 type tfNestedType struct {
@@ -71,7 +72,7 @@ func schemaChanges(old, updated []byte) ([]string, error) {
 		changes = append(changes, blockChanges(name, o, n)...)
 	}
 	slices.Sort(changes)
-	return changes, nil
+	return slices.Compact(changes), nil
 }
 
 func blockChanges(path string, o, n tfBlock) []string {
@@ -105,6 +106,11 @@ func attributeChanges(path string, o, n map[string]tfAttribute) []string {
 			continue
 		}
 		changes = append(changes, attributeChanges(p, oa.NestedType.Attributes, na.NestedType.Attributes)...)
+	}
+	for name, na := range n {
+		if na.Required && !o[name].Required {
+			changes = append(changes, path+"."+name)
+		}
 	}
 	return changes
 }

@@ -40,11 +40,24 @@ spec:
         properties:
           spec:
             type: object
+            x-kubernetes-validations:
+            - {rule: has(self.forProvider.name), message: old}
             properties:
               forProvider:
                 type: object
+                required: [name]
                 properties:
                   name: {type: string}
+                  flag: {type: string}
+                  labels:
+                    type: object
+                    additionalProperties: {type: string}
+                  annos:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        a: {type: string}
                   removed: {type: string}
                   retyped: {type: string}
                   ids:
@@ -83,11 +96,26 @@ spec:
         properties:
           spec:
             type: object
+            x-kubernetes-validations:
+            - {rule: has(self.forProvider.name), message: reworded}
+            - {rule: has(self.forProvider.flag), message: new}
             properties:
               forProvider:
                 type: object
+                required: [name, flag, addedRequired, retyped]
                 properties:
                   name: {type: string}
+                  flag: {type: string}
+                  addedRequired: {type: string}
+                  labels:
+                    type: object
+                    additionalProperties: {type: number}
+                  annos:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        a: {type: number}
                   added: {type: string}
                   retyped: {type: number}
                   ids:
@@ -97,6 +125,7 @@ spec:
                     type: array
                     items:
                       type: object
+                      required: [key]
                       properties:
                         key: {type: string}
 `
@@ -128,9 +157,15 @@ func TestCRDChanges(t *testing.T) {
 	}
 	want := []string{
 		"gones.access.posthog.m.clifton.quest",
+		"roles.access.posthog.m.clifton.quest/v1alpha1:spec",
+		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.addedRequired",
+		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.annos{}.a",
+		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.flag",
 		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.ids",
+		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.labels",
 		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.removed",
 		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.retyped",
+		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.tags[].key",
 		"roles.access.posthog.m.clifton.quest/v1alpha1:spec.forProvider.tags[].value",
 		"roles.access.posthog.m.clifton.quest/v1alpha2",
 	}
