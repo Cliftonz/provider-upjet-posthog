@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 The provider-upjet-posthog authors
+#
+# SPDX-License-Identifier: MPL-2.0
+
+# Acknowledgements for upstream tracking (SPEC.md section 9), keyed by
+# upstream version without the leading "v".
+#
+#   skip: true          abandons the version; it is never published, its
+#                       open upstream/v<version> PR is closed, and tracking
+#                       proceeds to the next version.
+#   breaking:           breaking-change gate IDs, exactly as the gate reports
+#                       them; also read by the CI CRD check for the version
+#                       named in the Makefile:
+#                         posthog_<resource>                       removed resource
+#                         posthog_<resource>.<field>[.<field>...]  removed or retyped field
+#                         <crd name>                               removed CRD
+#                         <crd name>/<api version>                 removed API version
+#                         <crd name>/<api version>:<field path>    removed or retyped field
+#   new_resources:      Terraform resource names reported by the new-resource gate.
+#
+# Example:
+#
+# "1.0.26":
+#   breaking:
+#     - posthog_insight.query
+#     - insights.analytics.posthog.m.clifton.quest/v1alpha1:spec.forProvider.query
+#   new_resources:
+#     - posthog_notebook
+# "1.0.27":
+#   skip: true
+{}
