@@ -148,10 +148,10 @@ The template build submodule provides generation, the multi-arch (`linux/amd64`,
 
 | Workflow | Trigger | Outcome |
 |---|---|---|
-| `ci.yml` | push, pull_request | lint; generation leaves no diff; unit tests; image and xpkg build; example validation (server-side dry-run of `examples/namespaced` in kind); CRD breaking-change check against the latest release, including `v1alpha1` kinds, passing changes acknowledged in `hack/upstream-acks.yaml`, skipped when no release exists |
+| `ci.yml` | push to `main`, pull_request | lint; generation leaves no diff; unit tests; image and xpkg build; example validation (server-side dry-run of `examples/namespaced` in kind); CRD breaking-change check against the latest release, including `v1alpha1` kinds, passing changes acknowledged in `hack/upstream-acks.yaml`, skipped when no release exists |
 | `e2e.yaml` | pull_request on `upstream/v*` and `upjet/*` branches; other PRs only with label `run-e2e`; `workflow_dispatch` | section 11 |
 | `tag.yaml` | merge (closed and merged) of an `upstream/v*` PR; `workflow_dispatch` (version, SHA) | creates `v<version>` on the merge commit; skips if the tag exists at that SHA; fails with a `release` issue if it exists at another SHA |
-| `publish-provider-package.yml` | after `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image; pushes `xpkg.upbound.io/cliftonz/provider-posthog:<version>` unless it exists; creates the GitHub release unless it exists; then dispatches `upstream-tracking.yml` |
+| `publish-provider-package.yml` | after `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image; pushes `xpkg.upbound.io/cliftonz/provider-posthog:<version>` unless it exists; creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then dispatches `upstream-tracking.yml` |
 | `upstream-tracking.yml` | daily schedule, `workflow_dispatch`, successful publish | section 9 |
 
 Tracking, release (tag and publish), and e2e each run in their own `concurrency` group and authenticate with the GitHub App token (section 12), so their pushes, PRs, issues, and dispatches work and trigger downstream workflows. Reusable workflows receive secrets explicitly. These tag and publish workflows replace the template's, which push to ghcr and create no GitHub release.
@@ -172,11 +172,13 @@ Each run acts on the oldest pending version according to its `upstream/v<version
 | merged, unreleased | dispatch `tag.yaml` with the merge commit, the single release path |
 | closed, unmerged | open a `release` issue |
 
-1. Fork: if a fork tag exists for the version, run the fork's unit tests and external-import check against the highest one; a failure opens a `fork-fix` issue. Otherwise rebase `public-provider` onto the upstream tag (moving new files under `internal/provider` to `provider/`), pass both fork checks, push the branch, then tag `v<version>-public`.
+1. Fork: if a fork tag exists for the version, run the fork checks (the fork's full `go test ./...`, acceptance tests skipped without `TF_ACC`, and the external-import check) against the highest one; a failure opens a `fork-fix` issue. Otherwise rebase `public-provider` onto the upstream tag (moving new files under `internal/provider` to `provider/`), pass both fork checks, then push the branch and tag `v<version>-public`.
 2. Bump: set the pins (section 2) and raise our Go toolchain to upstream's `go` directive; a dependency conflict with upjet fails as `build`.
 3. Regenerate and build.
-4. Gates: the breaking-change gate (a removed resource, removed field, or changed field type in `config/schema.json` or `package/crds` against the previous release) and the new-resource gate (an upstream resource absent from 4.2). Each passes for changes listed for that upstream version in `hack/upstream-acks.yaml`; a human adds entries alongside any needed config and reruns.
-5. Open the PR with auto-merge enabled; CI and e2e gate the merge.
+4. Gates: the breaking-change gate (against the previous release: in `config/schema.json` a removed resource, removed field, changed field type, added required field, or optional field made required; in `package/crds` a removed CRD, version, or property, a changed type, array item type, or map value schema, a newly required property, or a new `x-kubernetes-validations` rule) and the new-resource gate (an upstream resource absent from 4.2). Each passes for changes listed for that upstream version in `hack/upstream-acks.yaml`; a human adds entries alongside any needed config and reruns.
+5. Open the PR with auto-merge enabled; failing to enable auto-merge fails the step. CI and e2e gate the merge.
+
+No job that holds the GitHub App token runs upstream code: steps 1 to 4 run in jobs with a read-only `GITHUB_TOKEN` and hand a git bundle or patch to jobs that only push, open the PR, and enable auto-merge. Checkouts never persist credentials; tokens reach only the steps that push or call `gh`.
 
 Reruns reuse an existing `upstream/v<version>` branch, PR, and fork tags, and tag and publish skip work already done, so a partial release is completed rather than duplicated.
 
@@ -209,7 +211,7 @@ Additional cases:
 
 Manual steps by the human:
 
-1. Create a GitHub App with contents, pull-requests, actions, and issues write permissions; install it on this repository and the fork; store its credentials as repository secrets. Enable "Allow auto-merge" on this repository.
+1. Create a GitHub App with contents, pull-requests, actions, and issues write permissions; install it on this repository and the fork; store its credentials as repository secrets. Enable "Allow auto-merge" on this repository. Run `hack/labels.sh` to create the issue labels.
 2. Create fork tag `v1.0.25-public` on `public-provider` after it passes the fork unit tests and external-import check.
 3. Create Upbound organization `cliftonz` and repository `provider-posthog`; create an Upbound robot token and store it as `XPKG_ACCESS_ID` and `XPKG_TOKEN`.
 4. Publish the first release (section 10).
