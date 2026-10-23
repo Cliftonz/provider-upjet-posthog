@@ -1,6 +1,6 @@
-// SPDX-FileCopyrightText: 2025 The Crossplane Authors <https://crossplane.io>
+// SPDX-FileCopyrightText: 2026 The provider-upjet-posthog authors
 //
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MPL-2.0
 
 // Package version contains the version of this provider
 package version
