@@ -24,7 +24,7 @@ func (canonicalJSON) Convert(params map[string]any, _ *ujconfig.Resource, mode u
 		if decoder.Decode(&parsed) != nil {
 			continue
 		}
-		canonical, _ := json.Marshal(parsed)
+		canonical, _ := json.Marshal(parsed) //nolint:errchkjson
 		params[key] = string(canonical)
 	}
 	return params, nil
