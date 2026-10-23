@@ -1,42 +1,65 @@
 # Provider PostHog
 
-`provider-posthog` is a [Crossplane](https://crossplane.io/) provider
-posthog that is built using [Upjet](https://github.com/crossplane/upjet) code
-generation tools and exposes XRM-conformant managed resources for the PostHog
-API.
+`provider-posthog` is a Crossplane v2 provider, generated with
+[upjet](https://github.com/crossplane/upjet), that manages PostHog
+configuration as namespaced managed resources. It embeds the PostHog
+Terraform provider and covers all 26 of its resources.
 
-## Getting Started
+## Install
 
-This posthog serves as a starting point for generating a new [Crossplane Provider](https://docs.crossplane.io/latest/packages/providers/) using the [`upjet`](https://github.com/crossplane/upjet) tooling. Please follow the guide linked below to generate a new Provider:
-
-https://github.com/crossplane/upjet/blob/main/docs/generating-a-provider.md
-
-## Developing
-
-Run code-generation pipeline:
-```console
-go run cmd/generator/main.go "$PWD"
+```yaml
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-posthog
+spec:
+  package: xpkg.upbound.io/cliftonz/provider-posthog:v1.0.25
 ```
 
-Run against a Kubernetes cluster:
+## Configure
 
-```console
-make run
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: posthog-creds
+  namespace: team-a
+stringData:
+  credentials: |
+    {"api_key": "phx_...", "host": "https://us.posthog.com",
+     "organization_id": "@current", "project_id": "12345"}
+---
+apiVersion: posthog.m.clifton.quest/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  namespace: team-a
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      name: posthog-creds
+      namespace: team-a
+      key: credentials
 ```
 
-Build, push, and install:
+A `ProviderConfig` always reads the Secret from its own namespace;
+`secretRef.namespace` is required by the CRD. A `ClusterProviderConfig`
+reads it from `secretRef.namespace`.
 
-```console
-make all
-```
+## More
 
-Build binary:
+- [SPEC.md](SPEC.md): design, API groups and kinds, credentials, release process
+- [examples/namespaced](examples/namespaced): example manifests
+- `test/harness`: local PostHog for end-to-end tests (coming)
 
-```console
-make build
-```
+## Upstream
 
-## Report a Bug
+The provider embeds `github.com/PostHog/terraform-provider-posthog` through the
+fork `github.com/Cliftonz/terraform-provider-posthog`, which only makes the
+provider constructor importable. The fork is dropped once upstream exposes the
+constructor.
 
-For filing bugs, suggesting improvements, or requesting new features, please
-open an [issue](https://github.com/Cliftonz/provider-upjet-posthog/issues).
+## License
+
+[MPL-2.0](LICENSE)
