@@ -1,0 +1,20 @@
+apiVersion: warehouse.posthog.m.clifton.quest/v1alpha1
+kind: Table
+metadata:
+  annotations:
+    meta.upbound.io/example-id: warehouse/v1alpha1/table
+  labels:
+    testing.upbound.io/example-name: orders
+  name: orders
+  namespace: crossplane-system
+spec:
+  forProvider:
+    accessKeySecretRef:
+      key: example-key
+      name: example-secret
+    accessSecretSecretRef:
+      key: example-key
+      name: example-secret
+    format: Parquet
+    name: orders
+    urlPattern: https://your-bucket.s3.us-east-1.amazonaws.com/orders/*.parquet

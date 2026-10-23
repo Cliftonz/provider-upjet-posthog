@@ -1,0 +1,55 @@
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Settings
+metadata:
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/settings
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: crossplane-system
+spec:
+  forProvider:
+    anonymizeIps: false
+    appUrls:
+    - https://app.example.com
+    - https://www.example.com
+    autocaptureExceptionsOptIn: true
+    autocaptureWebVitalsOptIn: false
+    capturePerformanceOptIn: true
+    cookielessServerHashMode: 0
+    heatmapsOptIn: true
+    projectIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+    recordingDomains:
+    - https://app.example.com
+    sessionRecordingNetworkPayloadCaptureConfig:
+      recordBody: false
+      recordHeaders: true
+    sessionRecordingOptIn: true
+    surveysOptIn: true
+    testAccountFilters: |-
+      ${jsonencode([
+          {
+            key      = "id"
+            type     = "cohort"
+            value    = posthog_cohort.internal.id
+            operator = "in"
+          }
+        ])}
+    testAccountFiltersDefaultChecked: true
+
+---
+
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Cohort
+metadata:
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/settings
+  labels:
+    testing.upbound.io/example-name: internal
+  name: internal
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: Internal users

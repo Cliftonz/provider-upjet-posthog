@@ -1,0 +1,18 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: EarlyAccessFeature
+metadata:
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/earlyaccessfeature
+  labels:
+    testing.upbound.io/example-name: new_editor
+  name: new-editor
+  namespace: crossplane-system
+spec:
+  forProvider:
+    description: A faster editor with live collaboration.
+    documentationUrl: https://example.com/docs/new-editor
+    featureFlagIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: new_editor
+    name: New editor
+    stage: beta

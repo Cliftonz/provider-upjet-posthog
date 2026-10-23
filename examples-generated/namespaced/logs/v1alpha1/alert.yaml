@@ -1,0 +1,47 @@
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: Alert
+metadata:
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alert
+  labels:
+    testing.upbound.io/example-name: checkout_errors
+  name: checkout-errors
+  namespace: crossplane-system
+spec:
+  forProvider:
+    blockedWindows:
+    - end: "06:00"
+      start: "22:00"
+    cooldownMinutes: 30
+    datapointsToAlarm: 2
+    evaluationPeriods: 3
+    name: Checkout API errors
+    serviceNames:
+    - checkout-api
+    severityLevels:
+    - error
+    - fatal
+    thresholdCount: 10
+    thresholdOperator: above
+    windowMinutes: 10
+
+---
+
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: AlertDestination
+metadata:
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alert
+  labels:
+    testing.upbound.io/example-name: checkout_errors_oncall
+  name: checkout-errors-oncall
+  namespace: crossplane-system
+spec:
+  forProvider:
+    alertIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: checkout_errors
+    type: webhook
+    webhookUrlSecretRef:
+      key: example-key
+      name: example-secret

@@ -1,0 +1,15 @@
+apiVersion: organization.posthog.m.clifton.quest/v1alpha1
+kind: Member
+metadata:
+  annotations:
+    meta.upbound.io/example-id: organization/v1alpha1/member
+  labels:
+    testing.upbound.io/example-name: alice
+  name: alice
+  namespace: crossplane-system
+spec:
+  forProvider:
+    level: admin
+    organizationId: your-organization-uuid
+    retainOnDestroy: true
+    userUuid: ${data.posthog_user.alice.uuid}

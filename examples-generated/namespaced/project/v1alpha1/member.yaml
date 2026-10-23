@@ -1,0 +1,18 @@
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Member
+metadata:
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/member
+  labels:
+    testing.upbound.io/example-name: engineering_team
+  name: engineering-team
+  namespace: crossplane-system
+spec:
+  forProvider:
+    accessLevel: member
+    projectIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+    roleSelector:
+      matchLabels:
+        testing.upbound.io/example-name: engineering

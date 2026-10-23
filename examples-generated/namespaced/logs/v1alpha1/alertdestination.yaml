@@ -1,0 +1,40 @@
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: AlertDestination
+metadata:
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alertdestination
+  labels:
+    testing.upbound.io/example-name: checkout_errors_slack
+  name: checkout-errors-slack
+  namespace: crossplane-system
+spec:
+  forProvider:
+    alertIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: checkout_errors
+    slackChannelId: C0123456789
+    slackChannelName: '#checkout-alerts'
+    slackWorkspaceId: 1
+    type: slack
+
+---
+
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: Alert
+metadata:
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alertdestination
+  labels:
+    testing.upbound.io/example-name: checkout_errors
+  name: checkout-errors
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: Checkout API errors
+    serviceNames:
+    - checkout-api
+    severityLevels:
+    - error
+    - fatal
+    thresholdCount: 10
+    windowMinutes: 10

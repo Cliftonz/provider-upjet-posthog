@@ -1,0 +1,1025 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: subscriptions.analytics.posthog.m.clifton.quest
+spec:
+  group: analytics.posthog.m.clifton.quest
+  names:
+    categories:
+    - crossplane
+    - managed
+    - posthog
+    kind: Subscription
+    listKind: SubscriptionList
+    plural: subscriptions
+    singular: subscription
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: EXTERNAL-NAME
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Subscription is the Schema for the Subscriptions API. Manage
+          PostHog subscriptions. A subscription delivers a recurring dashboard or
+          insight digest to email or Slack on an rrule schedule.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SubscriptionSpec defines the desired state of Subscription
+            properties:
+              forProvider:
+                properties:
+                  aiPrompt:
+                    description: |-
+                      language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+                      Natural-language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+                    type: string
+                  aiPromptConfig:
+                    description: |-
+                      (String) Optional JSON config for an ai_prompt subscription, e.g. the analysis window ({"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when ai_prompt is set.
+                      Optional JSON config for an `ai_prompt` subscription, e.g. the analysis window (`{"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}`). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when `ai_prompt` is set.
+                    type: string
+                  bysetpos:
+                    description: |-
+                      1 means the last Monday. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+                      Selects *which* occurrence within the period to use (rrule `BYSETPOS`), used together with `byweekday` on a `monthly` frequency. For example `byweekday = ["monday"]` with `bysetpos = 1` means the **first Monday of each month**, and `bysetpos = -1` means the **last Monday**. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+                    type: number
+                  byweekday:
+                    description: |-
+                      (Set of String) Lowercase weekday names (monday..sunday) used with weekly/monthly frequency.
+                      Lowercase weekday names (`monday`..`sunday`) used with weekly/monthly frequency.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  dashboardExportInsights:
+                    description: |-
+                      empty when dashboard_id is set (the API rejects an empty selection). Ignored for insight subscriptions.
+                      Insight IDs from the dashboard to include in the digest. Required and non-empty when `dashboard_id` is set (the API rejects an empty selection). Ignored for insight subscriptions.
+                    items:
+                      type: number
+                    type: array
+                    x-kubernetes-list-type: set
+                  dashboardId:
+                    description: |-
+                      (Number) ID of the dashboard to send a digest for. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+                      ID of the dashboard to send a digest for. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. Changing which subject is targeted forces replacement.
+                    type: number
+                  dashboardIdRef:
+                    description: Reference to a Dashboard in dashboard to populate
+                      dashboardId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  dashboardIdSelector:
+                    description: Selector for a Dashboard in dashboard to populate
+                      dashboardId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  enabled:
+                    description: |-
+                      (Boolean) Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+                      Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+                    type: boolean
+                  frequency:
+                    description: |-
+                      (String) Recurrence unit: daily, weekly, monthly, or yearly.
+                      Recurrence unit: `daily`, `weekly`, `monthly`, or `yearly`.
+                    type: string
+                  insightId:
+                    description: |-
+                      (Number) ID of a single insight to subscribe to. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+                      ID of a single insight to subscribe to. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. Changing which subject is targeted forces replacement.
+                    type: number
+                  insightIdRef:
+                    description: Reference to a Insight in analytics to populate insightId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  insightIdSelector:
+                    description: Selector for a Insight in analytics to populate insightId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  integrationId:
+                    description: |-
+                      (Number) ID of the Slack integration to deliver through. Required when target_type is slack, and must be omitted for email. To find it, connect Slack under Settings → Integrations in the PostHog UI, then list this project's integrations via GET /api/projects/<project_id>/integrations/ and use the id of the entry whose kind is slack.
+                      ID of the Slack integration to deliver through. Required when `target_type` is `slack`, and must be omitted for `email`. To find it, connect Slack under **Settings → Integrations** in the PostHog UI, then list this project's integrations via `GET /api/projects/<project_id>/integrations/` and use the `id` of the entry whose `kind` is `slack`.
+                    type: number
+                  interval:
+                    description: |-
+                      (Number) Every N of the frequency unit (e.g. interval = 2 with frequency = "weekly" is every two weeks).
+                      Every N of the frequency unit (e.g. `interval = 2` with `frequency = "weekly"` is every two weeks).
+                    type: number
+                  projectId:
+                    description: |-
+                      level project_id.
+                      Project ID (environment) for this resource. Overrides the provider-level project_id.
+                    type: string
+                  projectIdRef:
+                    description: Reference to a Project in project to populate projectId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  projectIdSelector:
+                    description: Selector for a Project in project to populate projectId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  startDate:
+                    description: |-
+                      of-month plus time for weekly/monthly. PostHog requires it and has no server default, so it must always be set. Example: 2026-08-17T09:00:00Z delivers at 09:00 UTC.
+                      Required RFC3339 datetime that anchors the delivery schedule (the recurrence's `dtstart`). It sets *when in the cycle* deliveries land — the time of day for `daily`, and the weekday/day-of-month plus time for `weekly`/`monthly`. PostHog requires it and has no server default, so it must always be set. Example: `2026-08-17T09:00:00Z` delivers at 09:00 UTC.
+                    type: string
+                  summaryEnabled:
+                    description: |-
+                      generated summary to the delivery. Defaults to false.
+                      Whether to attach an AI-generated summary to the delivery. Defaults to false.
+                    type: boolean
+                  summaryPromptGuide:
+                    description: |-
+                      text guidance steering the AI summary (only used when summary_enabled is true).
+                      Optional free-text guidance steering the AI summary (only used when `summary_enabled` is true).
+                    type: string
+                  targetType:
+                    description: |-
+                      (String) Delivery channel type: email or slack.
+                      Delivery channel type: `email` or `slack`.
+                    type: string
+                  targetValue:
+                    description: |-
+                      separated addresses). For slack the channel in the form <channelId>|#<channel-name> (e.g. C0B9A53J8RF|#reports). Stored verbatim; the API does not parse the pipe/#name suffix.
+                      Delivery target. For `email` a plain address (or comma-separated addresses). For `slack` the channel in the form `<channelId>|#<channel-name>` (e.g. `C0B9A53J8RF|#reports`). Stored verbatim; the API does not parse the pipe/#name suffix.
+                    type: string
+                  title:
+                    description: |-
+                      readable label for the subscription.
+                      Optional human-readable label for the subscription.
+                    type: string
+                type: object
+              initProvider:
+                description: |-
+                  THIS IS A BETA FIELD. It will be honored
+                  unless the Management Policies feature flag is disabled.
+                  InitProvider holds the same fields as ForProvider, with the exception
+                  of Identifier and other resource reference fields. The fields that are
+                  in InitProvider are merged into ForProvider when the resource is created.
+                  The same fields are also added to the terraform ignore_changes hook, to
+                  avoid updating them after creation. This is useful for fields that are
+                  required on creation, but we do not desire to update them after creation,
+                  for example because of an external controller is managing them, like an
+                  autoscaler.
+                properties:
+                  aiPrompt:
+                    description: |-
+                      language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+                      Natural-language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+                    type: string
+                  aiPromptConfig:
+                    description: |-
+                      (String) Optional JSON config for an ai_prompt subscription, e.g. the analysis window ({"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when ai_prompt is set.
+                      Optional JSON config for an `ai_prompt` subscription, e.g. the analysis window (`{"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}`). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when `ai_prompt` is set.
+                    type: string
+                  bysetpos:
+                    description: |-
+                      1 means the last Monday. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+                      Selects *which* occurrence within the period to use (rrule `BYSETPOS`), used together with `byweekday` on a `monthly` frequency. For example `byweekday = ["monday"]` with `bysetpos = 1` means the **first Monday of each month**, and `bysetpos = -1` means the **last Monday**. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+                    type: number
+                  byweekday:
+                    description: |-
+                      (Set of String) Lowercase weekday names (monday..sunday) used with weekly/monthly frequency.
+                      Lowercase weekday names (`monday`..`sunday`) used with weekly/monthly frequency.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  dashboardExportInsights:
+                    description: |-
+                      empty when dashboard_id is set (the API rejects an empty selection). Ignored for insight subscriptions.
+                      Insight IDs from the dashboard to include in the digest. Required and non-empty when `dashboard_id` is set (the API rejects an empty selection). Ignored for insight subscriptions.
+                    items:
+                      type: number
+                    type: array
+                    x-kubernetes-list-type: set
+                  dashboardId:
+                    description: |-
+                      (Number) ID of the dashboard to send a digest for. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+                      ID of the dashboard to send a digest for. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. Changing which subject is targeted forces replacement.
+                    type: number
+                  dashboardIdRef:
+                    description: Reference to a Dashboard in dashboard to populate
+                      dashboardId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  dashboardIdSelector:
+                    description: Selector for a Dashboard in dashboard to populate
+                      dashboardId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  enabled:
+                    description: |-
+                      (Boolean) Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+                      Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+                    type: boolean
+                  frequency:
+                    description: |-
+                      (String) Recurrence unit: daily, weekly, monthly, or yearly.
+                      Recurrence unit: `daily`, `weekly`, `monthly`, or `yearly`.
+                    type: string
+                  insightId:
+                    description: |-
+                      (Number) ID of a single insight to subscribe to. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+                      ID of a single insight to subscribe to. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. Changing which subject is targeted forces replacement.
+                    type: number
+                  insightIdRef:
+                    description: Reference to a Insight in analytics to populate insightId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  insightIdSelector:
+                    description: Selector for a Insight in analytics to populate insightId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  integrationId:
+                    description: |-
+                      (Number) ID of the Slack integration to deliver through. Required when target_type is slack, and must be omitted for email. To find it, connect Slack under Settings → Integrations in the PostHog UI, then list this project's integrations via GET /api/projects/<project_id>/integrations/ and use the id of the entry whose kind is slack.
+                      ID of the Slack integration to deliver through. Required when `target_type` is `slack`, and must be omitted for `email`. To find it, connect Slack under **Settings → Integrations** in the PostHog UI, then list this project's integrations via `GET /api/projects/<project_id>/integrations/` and use the `id` of the entry whose `kind` is `slack`.
+                    type: number
+                  interval:
+                    description: |-
+                      (Number) Every N of the frequency unit (e.g. interval = 2 with frequency = "weekly" is every two weeks).
+                      Every N of the frequency unit (e.g. `interval = 2` with `frequency = "weekly"` is every two weeks).
+                    type: number
+                  projectId:
+                    description: |-
+                      level project_id.
+                      Project ID (environment) for this resource. Overrides the provider-level project_id.
+                    type: string
+                  projectIdRef:
+                    description: Reference to a Project in project to populate projectId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  projectIdSelector:
+                    description: Selector for a Project in project to populate projectId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  startDate:
+                    description: |-
+                      of-month plus time for weekly/monthly. PostHog requires it and has no server default, so it must always be set. Example: 2026-08-17T09:00:00Z delivers at 09:00 UTC.
+                      Required RFC3339 datetime that anchors the delivery schedule (the recurrence's `dtstart`). It sets *when in the cycle* deliveries land — the time of day for `daily`, and the weekday/day-of-month plus time for `weekly`/`monthly`. PostHog requires it and has no server default, so it must always be set. Example: `2026-08-17T09:00:00Z` delivers at 09:00 UTC.
+                    type: string
+                  summaryEnabled:
+                    description: |-
+                      generated summary to the delivery. Defaults to false.
+                      Whether to attach an AI-generated summary to the delivery. Defaults to false.
+                    type: boolean
+                  summaryPromptGuide:
+                    description: |-
+                      text guidance steering the AI summary (only used when summary_enabled is true).
+                      Optional free-text guidance steering the AI summary (only used when `summary_enabled` is true).
+                    type: string
+                  targetType:
+                    description: |-
+                      (String) Delivery channel type: email or slack.
+                      Delivery channel type: `email` or `slack`.
+                    type: string
+                  targetValue:
+                    description: |-
+                      separated addresses). For slack the channel in the form <channelId>|#<channel-name> (e.g. C0B9A53J8RF|#reports). Stored verbatim; the API does not parse the pipe/#name suffix.
+                      Delivery target. For `email` a plain address (or comma-separated addresses). For `slack` the channel in the form `<channelId>|#<channel-name>` (e.g. `C0B9A53J8RF|#reports`). Stored verbatim; the API does not parse the pipe/#name suffix.
+                    type: string
+                  title:
+                    description: |-
+                      readable label for the subscription.
+                      Optional human-readable label for the subscription.
+                    type: string
+                type: object
+              managementPolicies:
+                default:
+                - '*'
+                description: |-
+                  THIS IS A BETA FIELD. It is on by default but can be opted out
+                  through a Crossplane feature flag.
+                  ManagementPolicies specify the array of actions Crossplane is allowed to
+                  take on the managed and external resources.
+                  See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+                  and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+                items:
+                  description: |-
+                    A ManagementAction represents an action that the Crossplane controllers
+                    can take on an external resource.
+                  enum:
+                  - Observe
+                  - Create
+                  - Update
+                  - Delete
+                  - LateInitialize
+                  - '*'
+                  type: string
+                type: array
+              providerConfigRef:
+                default:
+                  kind: ClusterProviderConfig
+                  name: default
+                description: |-
+                  ProviderConfigReference specifies how the provider that will be used to
+                  create, observe, update, and delete this managed resource should be
+                  configured.
+                properties:
+                  kind:
+                    description: Kind of the referenced object.
+                    type: string
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: |-
+                  WriteConnectionSecretToReference specifies the namespace and name of a
+                  Secret to which any connection details for this managed resource should
+                  be written. Connection details frequently include the endpoint, username,
+                  and password required to connect to the managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - forProvider
+            type: object
+            x-kubernetes-validations:
+            - message: spec.forProvider.frequency is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.frequency)
+                || (has(self.initProvider) && has(self.initProvider.frequency))'
+            - message: spec.forProvider.interval is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.interval)
+                || (has(self.initProvider) && has(self.initProvider.interval))'
+            - message: spec.forProvider.startDate is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.startDate)
+                || (has(self.initProvider) && has(self.initProvider.startDate))'
+            - message: spec.forProvider.targetType is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.targetType)
+                || (has(self.initProvider) && has(self.initProvider.targetType))'
+            - message: spec.forProvider.targetValue is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.targetValue)
+                || (has(self.initProvider) && has(self.initProvider.targetValue))'
+          status:
+            description: SubscriptionStatus defines the observed state of Subscription.
+            properties:
+              atProvider:
+                properties:
+                  aiPrompt:
+                    description: |-
+                      language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+                      Natural-language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+                    type: string
+                  aiPromptConfig:
+                    description: |-
+                      (String) Optional JSON config for an ai_prompt subscription, e.g. the analysis window ({"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when ai_prompt is set.
+                      Optional JSON config for an `ai_prompt` subscription, e.g. the analysis window (`{"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}`). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when `ai_prompt` is set.
+                    type: string
+                  bysetpos:
+                    description: |-
+                      1 means the last Monday. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+                      Selects *which* occurrence within the period to use (rrule `BYSETPOS`), used together with `byweekday` on a `monthly` frequency. For example `byweekday = ["monday"]` with `bysetpos = 1` means the **first Monday of each month**, and `bysetpos = -1` means the **last Monday**. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+                    type: number
+                  byweekday:
+                    description: |-
+                      (Set of String) Lowercase weekday names (monday..sunday) used with weekly/monthly frequency.
+                      Lowercase weekday names (`monday`..`sunday`) used with weekly/monthly frequency.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  createdAt:
+                    description: |-
+                      (String) Timestamp when the subscription was created.
+                      Timestamp when the subscription was created.
+                    type: string
+                  dashboardExportInsights:
+                    description: |-
+                      empty when dashboard_id is set (the API rejects an empty selection). Ignored for insight subscriptions.
+                      Insight IDs from the dashboard to include in the digest. Required and non-empty when `dashboard_id` is set (the API rejects an empty selection). Ignored for insight subscriptions.
+                    items:
+                      type: number
+                    type: array
+                    x-kubernetes-list-type: set
+                  dashboardId:
+                    description: |-
+                      (Number) ID of the dashboard to send a digest for. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+                      ID of the dashboard to send a digest for. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. Changing which subject is targeted forces replacement.
+                    type: number
+                  enabled:
+                    description: |-
+                      (Boolean) Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+                      Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+                    type: boolean
+                  frequency:
+                    description: |-
+                      (String) Recurrence unit: daily, weekly, monthly, or yearly.
+                      Recurrence unit: `daily`, `weekly`, `monthly`, or `yearly`.
+                    type: string
+                  id:
+                    description: (Number) Numeric ID of the subscription.
+                    type: string
+                  insightId:
+                    description: |-
+                      (Number) ID of a single insight to subscribe to. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+                      ID of a single insight to subscribe to. Exactly one of `dashboard_id`, `insight_id`, or `ai_prompt` must be set. Changing which subject is targeted forces replacement.
+                    type: number
+                  integrationId:
+                    description: |-
+                      (Number) ID of the Slack integration to deliver through. Required when target_type is slack, and must be omitted for email. To find it, connect Slack under Settings → Integrations in the PostHog UI, then list this project's integrations via GET /api/projects/<project_id>/integrations/ and use the id of the entry whose kind is slack.
+                      ID of the Slack integration to deliver through. Required when `target_type` is `slack`, and must be omitted for `email`. To find it, connect Slack under **Settings → Integrations** in the PostHog UI, then list this project's integrations via `GET /api/projects/<project_id>/integrations/` and use the `id` of the entry whose `kind` is `slack`.
+                    type: number
+                  interval:
+                    description: |-
+                      (Number) Every N of the frequency unit (e.g. interval = 2 with frequency = "weekly" is every two weeks).
+                      Every N of the frequency unit (e.g. `interval = 2` with `frequency = "weekly"` is every two weeks).
+                    type: number
+                  nextDeliveryDate:
+                    description: |-
+                      (String) Computed timestamp of the next scheduled delivery.
+                      Computed timestamp of the next scheduled delivery.
+                    type: string
+                  projectId:
+                    description: |-
+                      level project_id.
+                      Project ID (environment) for this resource. Overrides the provider-level project_id.
+                    type: string
+                  resourceType:
+                    description: |-
+                      inferred subject type: dashboard, insight, or ai_prompt.
+                      Server-inferred subject type: `dashboard`, `insight`, or `ai_prompt`.
+                    type: string
+                  startDate:
+                    description: |-
+                      of-month plus time for weekly/monthly. PostHog requires it and has no server default, so it must always be set. Example: 2026-08-17T09:00:00Z delivers at 09:00 UTC.
+                      Required RFC3339 datetime that anchors the delivery schedule (the recurrence's `dtstart`). It sets *when in the cycle* deliveries land — the time of day for `daily`, and the weekday/day-of-month plus time for `weekly`/`monthly`. PostHog requires it and has no server default, so it must always be set. Example: `2026-08-17T09:00:00Z` delivers at 09:00 UTC.
+                    type: string
+                  summary:
+                    description: |-
+                      generated human-readable schedule summary (e.g. sent every week on Monday). Recomputed whenever the schedule changes.
+                      Server-generated human-readable schedule summary (e.g. `sent every week on Monday`). Recomputed whenever the schedule changes.
+                    type: string
+                  summaryEnabled:
+                    description: |-
+                      generated summary to the delivery. Defaults to false.
+                      Whether to attach an AI-generated summary to the delivery. Defaults to false.
+                    type: boolean
+                  summaryPromptGuide:
+                    description: |-
+                      text guidance steering the AI summary (only used when summary_enabled is true).
+                      Optional free-text guidance steering the AI summary (only used when `summary_enabled` is true).
+                    type: string
+                  targetType:
+                    description: |-
+                      (String) Delivery channel type: email or slack.
+                      Delivery channel type: `email` or `slack`.
+                    type: string
+                  targetValue:
+                    description: |-
+                      separated addresses). For slack the channel in the form <channelId>|#<channel-name> (e.g. C0B9A53J8RF|#reports). Stored verbatim; the API does not parse the pipe/#name suffix.
+                      Delivery target. For `email` a plain address (or comma-separated addresses). For `slack` the channel in the form `<channelId>|#<channel-name>` (e.g. `C0B9A53J8RF|#reports`). Stored verbatim; the API does not parse the pipe/#name suffix.
+                    type: string
+                  title:
+                    description: |-
+                      readable label for the subscription.
+                      Optional human-readable label for the subscription.
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        LastTransitionTime is the last time this condition transitioned from one
+                        status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A Message containing details about this condition's last transition from
+                        one status to another, if any.
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        ObservedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      type: integer
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: |-
+                        Type of this condition. At most one of each condition type may apply to
+                        a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastHandledReconcileAt:
+                description: |-
+                  LastHandledReconcileAt holds the value of the most recent
+                  reconcile-requested-at annotation token that the controller has
+                  processed. Users can compare this to the annotation to determine
+                  whether a reconcile request has been handled.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the latest metadata.generation
+                  which resulted in either a ready state, or stalled due to error
+                  it can not recover from without human intervention.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

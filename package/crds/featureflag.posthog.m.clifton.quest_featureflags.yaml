@@ -1,0 +1,563 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: featureflags.featureflag.posthog.m.clifton.quest
+spec:
+  group: featureflag.posthog.m.clifton.quest
+  names:
+    categories:
+    - crossplane
+    - managed
+    - posthog
+    kind: FeatureFlag
+    listKind: FeatureFlagList
+    plural: featureflags
+    singular: featureflag
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: EXTERNAL-NAME
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: FeatureFlag is the Schema for the FeatureFlags API. <no value>
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FeatureFlagSpec defines the desired state of FeatureFlag
+            properties:
+              forProvider:
+                properties:
+                  active:
+                    description: Whether the feature flag is active
+                    type: boolean
+                  createUsageDashboard:
+                    description: Deprecated create-time option. PostHog no longer
+                      creates a saved usage dashboard when a flag is created, so `true`
+                      is rejected for new flags instead of silently doing nothing.
+                      Omit this attribute for new configurations. Existing flags with
+                      this setting remain readable, and usage charts are available
+                      on the flag's Usage tab.
+                    type: boolean
+                  deleted:
+                    description: Whether the feature flag is soft-deleted.
+                    type: boolean
+                  ensureExperienceContinuity:
+                    description: Whether to persist the flag across authentication
+                      steps (PostHog's UI labels this as 'Persist flag across authentication
+                      steps'). Flags with experience continuity enabled cannot be
+                      evaluated by server-side local evaluation; set this to false
+                      for flags that must be evaluated locally.
+                    type: boolean
+                  filters:
+                    description: Feature flag filters as JSON. Compared semantically,
+                      so key ordering and whitespace differences from the PostHog
+                      API do not produce a diff. Fields present in the API response
+                      but absent from this config are kept in state so remote changes
+                      surface as drift — except the top-level keys listed in `ignore_filter_fields`
+                      and an undeclared `feature_enrollment` marker owned by Early
+                      Access Features.
+                    type: string
+                  ignoreFilterFields:
+                    description: When unset, defaults to the keys other PostHog products
+                      wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups",
+                      "holdout"]` (Early Access Features and Experiments). Set to
+                      `[]` to track other filter keys, including Experiment wiring,
+                      or provide your own set to replace the default. A key you also
+                      declare inside `filters` is always tracked (explicit config
+                      wins over the ignore list).
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  key:
+                    description: Feature flag key (unique identifier)
+                    type: string
+                  name:
+                    description: Feature flag name/description (PostHog's UI labels
+                      this as 'Description'). The API does not expose a separate dedicated
+                      description field for feature flags.
+                    type: string
+                  projectId:
+                    description: Project ID (environment) for this resource. Overrides
+                      the provider-level project_id.
+                    type: string
+                  projectIdRef:
+                    description: Reference to a Project in project to populate projectId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  projectIdSelector:
+                    description: Selector for a Project in project to populate projectId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  rolloutPercentage:
+                    description: Rollout percentage (0-100)
+                    type: number
+                  tags:
+                    description: Set of tags for the feature flag
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              initProvider:
+                description: |-
+                  THIS IS A BETA FIELD. It will be honored
+                  unless the Management Policies feature flag is disabled.
+                  InitProvider holds the same fields as ForProvider, with the exception
+                  of Identifier and other resource reference fields. The fields that are
+                  in InitProvider are merged into ForProvider when the resource is created.
+                  The same fields are also added to the terraform ignore_changes hook, to
+                  avoid updating them after creation. This is useful for fields that are
+                  required on creation, but we do not desire to update them after creation,
+                  for example because of an external controller is managing them, like an
+                  autoscaler.
+                properties:
+                  active:
+                    description: Whether the feature flag is active
+                    type: boolean
+                  createUsageDashboard:
+                    description: Deprecated create-time option. PostHog no longer
+                      creates a saved usage dashboard when a flag is created, so `true`
+                      is rejected for new flags instead of silently doing nothing.
+                      Omit this attribute for new configurations. Existing flags with
+                      this setting remain readable, and usage charts are available
+                      on the flag's Usage tab.
+                    type: boolean
+                  deleted:
+                    description: Whether the feature flag is soft-deleted.
+                    type: boolean
+                  ensureExperienceContinuity:
+                    description: Whether to persist the flag across authentication
+                      steps (PostHog's UI labels this as 'Persist flag across authentication
+                      steps'). Flags with experience continuity enabled cannot be
+                      evaluated by server-side local evaluation; set this to false
+                      for flags that must be evaluated locally.
+                    type: boolean
+                  filters:
+                    description: Feature flag filters as JSON. Compared semantically,
+                      so key ordering and whitespace differences from the PostHog
+                      API do not produce a diff. Fields present in the API response
+                      but absent from this config are kept in state so remote changes
+                      surface as drift — except the top-level keys listed in `ignore_filter_fields`
+                      and an undeclared `feature_enrollment` marker owned by Early
+                      Access Features.
+                    type: string
+                  ignoreFilterFields:
+                    description: When unset, defaults to the keys other PostHog products
+                      wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups",
+                      "holdout"]` (Early Access Features and Experiments). Set to
+                      `[]` to track other filter keys, including Experiment wiring,
+                      or provide your own set to replace the default. A key you also
+                      declare inside `filters` is always tracked (explicit config
+                      wins over the ignore list).
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  key:
+                    description: Feature flag key (unique identifier)
+                    type: string
+                  name:
+                    description: Feature flag name/description (PostHog's UI labels
+                      this as 'Description'). The API does not expose a separate dedicated
+                      description field for feature flags.
+                    type: string
+                  projectId:
+                    description: Project ID (environment) for this resource. Overrides
+                      the provider-level project_id.
+                    type: string
+                  projectIdRef:
+                    description: Reference to a Project in project to populate projectId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  projectIdSelector:
+                    description: Selector for a Project in project to populate projectId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  rolloutPercentage:
+                    description: Rollout percentage (0-100)
+                    type: number
+                  tags:
+                    description: Set of tags for the feature flag
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              managementPolicies:
+                default:
+                - '*'
+                description: |-
+                  THIS IS A BETA FIELD. It is on by default but can be opted out
+                  through a Crossplane feature flag.
+                  ManagementPolicies specify the array of actions Crossplane is allowed to
+                  take on the managed and external resources.
+                  See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+                  and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+                items:
+                  description: |-
+                    A ManagementAction represents an action that the Crossplane controllers
+                    can take on an external resource.
+                  enum:
+                  - Observe
+                  - Create
+                  - Update
+                  - Delete
+                  - LateInitialize
+                  - '*'
+                  type: string
+                type: array
+              providerConfigRef:
+                default:
+                  kind: ClusterProviderConfig
+                  name: default
+                description: |-
+                  ProviderConfigReference specifies how the provider that will be used to
+                  create, observe, update, and delete this managed resource should be
+                  configured.
+                properties:
+                  kind:
+                    description: Kind of the referenced object.
+                    type: string
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: |-
+                  WriteConnectionSecretToReference specifies the namespace and name of a
+                  Secret to which any connection details for this managed resource should
+                  be written. Connection details frequently include the endpoint, username,
+                  and password required to connect to the managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - forProvider
+            type: object
+            x-kubernetes-validations:
+            - message: spec.forProvider.key is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.key)
+                || (has(self.initProvider) && has(self.initProvider.key))'
+          status:
+            description: FeatureFlagStatus defines the observed state of FeatureFlag.
+            properties:
+              atProvider:
+                properties:
+                  active:
+                    description: Whether the feature flag is active
+                    type: boolean
+                  createUsageDashboard:
+                    description: Deprecated create-time option. PostHog no longer
+                      creates a saved usage dashboard when a flag is created, so `true`
+                      is rejected for new flags instead of silently doing nothing.
+                      Omit this attribute for new configurations. Existing flags with
+                      this setting remain readable, and usage charts are available
+                      on the flag's Usage tab.
+                    type: boolean
+                  deleted:
+                    description: Whether the feature flag is soft-deleted.
+                    type: boolean
+                  ensureExperienceContinuity:
+                    description: Whether to persist the flag across authentication
+                      steps (PostHog's UI labels this as 'Persist flag across authentication
+                      steps'). Flags with experience continuity enabled cannot be
+                      evaluated by server-side local evaluation; set this to false
+                      for flags that must be evaluated locally.
+                    type: boolean
+                  filters:
+                    description: Feature flag filters as JSON. Compared semantically,
+                      so key ordering and whitespace differences from the PostHog
+                      API do not produce a diff. Fields present in the API response
+                      but absent from this config are kept in state so remote changes
+                      surface as drift — except the top-level keys listed in `ignore_filter_fields`
+                      and an undeclared `feature_enrollment` marker owned by Early
+                      Access Features.
+                    type: string
+                  id:
+                    type: string
+                  ignoreFilterFields:
+                    description: When unset, defaults to the keys other PostHog products
+                      wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups",
+                      "holdout"]` (Early Access Features and Experiments). Set to
+                      `[]` to track other filter keys, including Experiment wiring,
+                      or provide your own set to replace the default. A key you also
+                      declare inside `filters` is always tracked (explicit config
+                      wins over the ignore list).
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  key:
+                    description: Feature flag key (unique identifier)
+                    type: string
+                  name:
+                    description: Feature flag name/description (PostHog's UI labels
+                      this as 'Description'). The API does not expose a separate dedicated
+                      description field for feature flags.
+                    type: string
+                  projectId:
+                    description: Project ID (environment) for this resource. Overrides
+                      the provider-level project_id.
+                    type: string
+                  rolloutPercentage:
+                    description: Rollout percentage (0-100)
+                    type: number
+                  tags:
+                    description: Set of tags for the feature flag
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        LastTransitionTime is the last time this condition transitioned from one
+                        status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A Message containing details about this condition's last transition from
+                        one status to another, if any.
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        ObservedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      type: integer
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: |-
+                        Type of this condition. At most one of each condition type may apply to
+                        a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastHandledReconcileAt:
+                description: |-
+                  LastHandledReconcileAt holds the value of the most recent
+                  reconcile-requested-at annotation token that the controller has
+                  processed. Users can compare this to the annotation to determine
+                  whether a reconcile request has been handled.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the latest metadata.generation
+                  which resulted in either a ready state, or stalled due to error
+                  it can not recover from without human intervention.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

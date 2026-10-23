@@ -1,0 +1,78 @@
+apiVersion: dashboard.posthog.m.clifton.quest/v1alpha1
+kind: Layout
+metadata:
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/layout
+  labels:
+    testing.upbound.io/example-name: engineering
+  name: engineering
+  namespace: crossplane-system
+spec:
+  forProvider:
+    dashboardIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: engineering
+    tiles:
+    - layoutsJson: ${jsonencode({ sm = { x = 0, y = 0, w = 12, h = 1 } })}
+      textBody: '## Key Metrics'
+    - color: blue
+      insightIdSelector:
+        matchLabels:
+          testing.upbound.io/example-name: pageviews
+      layoutsJson: ${jsonencode({ sm = { x = 0, y = 1, w = 6, h = 4 } })}
+      showDescription: false
+    - insightIdSelector:
+        matchLabels:
+          testing.upbound.io/example-name: signups
+      layoutsJson: ${jsonencode({ sm = { x = 6, y = 1, w = 6, h = 4 } })}
+      showDescription: false
+
+---
+
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/layout
+  labels:
+    testing.upbound.io/example-name: pageviews
+  name: pageviews
+  namespace: crossplane-system
+spec:
+  forProvider:
+    dashboardIdsRefs:
+    - name: engineering
+    name: Page Views
+    queryJson: |-
+      ${jsonencode({
+          kind = "InsightVizNode"
+          source = {
+            kind   = "TrendsQuery"
+            series = [{ kind = "EventsNode", event = "$pageview", math = "total" }]
+          }
+        })}
+
+---
+
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  annotations:
+    meta.upbound.io/example-id: dashboard/v1alpha1/layout
+  labels:
+    testing.upbound.io/example-name: signups
+  name: signups
+  namespace: crossplane-system
+spec:
+  forProvider:
+    dashboardIdsRefs:
+    - name: engineering
+    name: Sign-ups
+    queryJson: |-
+      ${jsonencode({
+          kind = "InsightVizNode"
+          source = {
+            kind   = "TrendsQuery"
+            series = [{ kind = "EventsNode", event = "user_signed_up", math = "total" }]
+          }
+        })}

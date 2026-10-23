@@ -1,0 +1,13 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: AccessControl
+metadata:
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/accesscontrol
+  labels:
+    testing.upbound.io/example-name: surveys_project_default
+  name: surveys-project-default
+  namespace: crossplane-system
+spec:
+  forProvider:
+    accessLevel: viewer
+    resource: survey

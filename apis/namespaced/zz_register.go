@@ -10,17 +10,37 @@ package namespaced
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
-	v1alpha1 "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/null/v1alpha1"
+	v1alpha1 "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/access/v1alpha1"
+	v1alpha1analytics "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/analytics/v1alpha1"
+	v1alpha1cdp "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/cdp/v1alpha1"
+	v1alpha1dashboard "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/dashboard/v1alpha1"
+	v1alpha1experiment "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/experiment/v1alpha1"
+	v1alpha1featureflag "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/featureflag/v1alpha1"
+	v1alpha1logs "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/logs/v1alpha1"
+	v1alpha1organization "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/organization/v1alpha1"
+	v1alpha1project "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/project/v1alpha1"
+	v1alpha1survey "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/survey/v1alpha1"
 	v1alpha1namespaced "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/v1alpha1"
 	v1beta1 "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/v1beta1"
+	v1alpha1warehouse "github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/warehouse/v1alpha1"
 )
 
 func init() {
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
 	AddToSchemes = append(AddToSchemes,
 		v1alpha1.SchemeBuilder.AddToScheme,
+		v1alpha1analytics.SchemeBuilder.AddToScheme,
+		v1alpha1cdp.SchemeBuilder.AddToScheme,
+		v1alpha1dashboard.SchemeBuilder.AddToScheme,
+		v1alpha1experiment.SchemeBuilder.AddToScheme,
+		v1alpha1featureflag.SchemeBuilder.AddToScheme,
+		v1alpha1logs.SchemeBuilder.AddToScheme,
+		v1alpha1organization.SchemeBuilder.AddToScheme,
+		v1alpha1project.SchemeBuilder.AddToScheme,
+		v1alpha1survey.SchemeBuilder.AddToScheme,
 		v1alpha1namespaced.SchemeBuilder.AddToScheme,
 		v1beta1.SchemeBuilder.AddToScheme,
+		v1alpha1warehouse.SchemeBuilder.AddToScheme,
 	)
 }
 

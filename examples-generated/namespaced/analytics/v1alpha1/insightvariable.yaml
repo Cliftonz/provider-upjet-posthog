@@ -1,0 +1,43 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: InsightVariable
+metadata:
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insightvariable
+  labels:
+    testing.upbound.io/example-name: lookup
+  name: lookup
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: Lookup
+    type: String
+
+---
+
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insightvariable
+  labels:
+    testing.upbound.io/example-name: events_by_environment
+  name: events-by-environment
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: Events by environment
+    queryJson: |-
+      ${jsonencode({
+          kind = "DataVisualizationNode"
+          source = {
+            kind  = "HogQLQuery"
+            query = "SELECT count() FROM events WHERE timestamp >= now() - INTERVAL 1 DAY AND properties.environment = {variables.environment}"
+            variables = {
+              (posthog_insight_variable.environment.id) = {
+                code_name  = posthog_insight_variable.environment.code_name
+                variableId = posthog_insight_variable.environment.id
+                value      = "prod"
+              }
+            }
+          }
+        })}

@@ -1,0 +1,631 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: experiments.experiment.posthog.m.clifton.quest
+spec:
+  group: experiment.posthog.m.clifton.quest
+  names:
+    categories:
+    - crossplane
+    - managed
+    - posthog
+    kind: Experiment
+    listKind: ExperimentList
+    plural: experiments
+    singular: experiment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: EXTERNAL-NAME
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Experiment is the Schema for the Experiments API. Manage PostHog
+          experiments (A/B tests) — definition, metrics, and the draft → running →
+          paused → stopped lifecycle. The backing feature flag is a separate posthog_feature_flag
+          resource referenced by feature_flag_key; the experiment attaches metrics
+          and drives the lifecycle (including shipping a winning variant on stop).
+          Business rules (transition legality, metric schema) are enforced by the
+          PostHog API at apply time, not by the provider.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ExperimentSpec defines the desired state of Experiment
+            properties:
+              forProvider:
+                properties:
+                  allowUnknownEvents:
+                    description: |-
+                      in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+                      Opt-in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+                    type: boolean
+                  description:
+                    description: |-
+                      (String) Experiment description.
+                      Experiment description.
+                    type: string
+                  exposureCriteria:
+                    description: |-
+                      compare handling as metrics.
+                      Exposure criteria as a JSON object (this is where `filterTestAccounts` lives). Same semantic-compare handling as `metrics`.
+                    type: string
+                  featureFlagKey:
+                    description: |-
+                      keyed in place).
+                      Key of the multivariate feature flag this experiment runs on. Reference a `posthog_feature_flag` resource — e.g. `feature_flag_key = posthog_feature_flag.<name>.key`. The flag must already exist and be multivariate (2–20 variants, one keyed `control`). Changing this forces a new experiment (a linked flag cannot be re-keyed in place).
+                    type: string
+                  holdoutId:
+                    description: |-
+                      (Number) ID of an existing holdout group to reference. Holdout management itself is out of scope.
+                      ID of an existing holdout group to reference. Holdout management itself is out of scope.
+                    type: number
+                  metrics:
+                    description: |-
+                      computed fields (e.g. metric fingerprints) are ignored.
+                      Primary metrics as a JSON array. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Only fields you declare are tracked; server-computed fields (e.g. metric fingerprints) are ignored.
+                    type: string
+                  metricsSecondary:
+                    description: |-
+                      compare handling as metrics.
+                      Secondary metrics as a JSON array. Same semantic-compare handling as `metrics`.
+                    type: string
+                  name:
+                    description: |-
+                      (String) Experiment name.
+                      Experiment name.
+                    type: string
+                  projectId:
+                    description: |-
+                      level project_id.
+                      Project ID (environment) for this resource. Overrides the provider-level project_id.
+                    type: string
+                  projectIdRef:
+                    description: Reference to a Project in project to populate projectId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  projectIdSelector:
+                    description: Selector for a Project in project to populate projectId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  status:
+                    description: |-
+                      Declare it to drive the experiment through draft → running → paused → stopped; the provider maps the desired state (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as paused = launch+pause, or stopped = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only exposure_frozen state cannot be managed here; resume or end such an experiment in the PostHog UI first. (see below for nested schema)
+                      Desired lifecycle state. Declare it to drive the experiment through `draft` → `running` → `paused` → `stopped`; the provider maps the desired `state` (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as `paused` = launch+pause, or `stopped` = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only `exposure_frozen` state cannot be managed here; resume or end such an experiment in the PostHog UI first.
+                    properties:
+                      state:
+                        description: |-
+                          yet-launched experiment). The lifecycle is forward-only.
+                          Desired lifecycle state — one of `draft`, `running`, `paused`, or `stopped` (required; use `draft` for a not-yet-launched experiment). The lifecycle is forward-only.
+                        type: string
+                      stopped:
+                        description: |-
+                          (Block, Optional) Metadata applied when stopping the experiment (read only when state = "stopped", ignored otherwise). (see below for nested schema)
+                          Metadata applied when stopping the experiment (read only when `state = "stopped"`, ignored otherwise).
+                        properties:
+                          conclusion:
+                            description: |-
+                              stopped experiment is PATCHed and read back).
+                              Conclusion recorded when the experiment is stopped — one of `won`, `lost`, `inconclusive`, `stopped_early`, `invalid`. Fully managed: applied at stop time and editable afterwards (an edit on an already-stopped experiment is PATCHed and read back).
+                            type: string
+                          conclusionComment:
+                            description: |-
+                              text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+                              Free-text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+                            type: string
+                          releaseToEveryone:
+                            description: |-
+                              all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to false. Config-only.
+                              When shipping, prepend a catch-all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to `false`. Config-only.
+                            type: boolean
+                          shipVariant:
+                            description: |-
+                              only; re-ships only when this value changes; clearing it does not un-ship.
+                              Key of the winning variant to ship. Rewrites the linked flag's distribution so this variant gets 100% and ends the experiment. If the flag is managed by a `posthog_feature_flag` resource, set `lifecycle { ignore_changes = [filters] }` on it so it does not revert the shipped distribution. Config-only; re-ships only when this value changes; clearing it does not un-ship.
+                            type: string
+                        type: object
+                    type: object
+                type: object
+              initProvider:
+                description: |-
+                  THIS IS A BETA FIELD. It will be honored
+                  unless the Management Policies feature flag is disabled.
+                  InitProvider holds the same fields as ForProvider, with the exception
+                  of Identifier and other resource reference fields. The fields that are
+                  in InitProvider are merged into ForProvider when the resource is created.
+                  The same fields are also added to the terraform ignore_changes hook, to
+                  avoid updating them after creation. This is useful for fields that are
+                  required on creation, but we do not desire to update them after creation,
+                  for example because of an external controller is managing them, like an
+                  autoscaler.
+                properties:
+                  allowUnknownEvents:
+                    description: |-
+                      in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+                      Opt-in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+                    type: boolean
+                  description:
+                    description: |-
+                      (String) Experiment description.
+                      Experiment description.
+                    type: string
+                  exposureCriteria:
+                    description: |-
+                      compare handling as metrics.
+                      Exposure criteria as a JSON object (this is where `filterTestAccounts` lives). Same semantic-compare handling as `metrics`.
+                    type: string
+                  featureFlagKey:
+                    description: |-
+                      keyed in place).
+                      Key of the multivariate feature flag this experiment runs on. Reference a `posthog_feature_flag` resource — e.g. `feature_flag_key = posthog_feature_flag.<name>.key`. The flag must already exist and be multivariate (2–20 variants, one keyed `control`). Changing this forces a new experiment (a linked flag cannot be re-keyed in place).
+                    type: string
+                  holdoutId:
+                    description: |-
+                      (Number) ID of an existing holdout group to reference. Holdout management itself is out of scope.
+                      ID of an existing holdout group to reference. Holdout management itself is out of scope.
+                    type: number
+                  metrics:
+                    description: |-
+                      computed fields (e.g. metric fingerprints) are ignored.
+                      Primary metrics as a JSON array. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Only fields you declare are tracked; server-computed fields (e.g. metric fingerprints) are ignored.
+                    type: string
+                  metricsSecondary:
+                    description: |-
+                      compare handling as metrics.
+                      Secondary metrics as a JSON array. Same semantic-compare handling as `metrics`.
+                    type: string
+                  name:
+                    description: |-
+                      (String) Experiment name.
+                      Experiment name.
+                    type: string
+                  projectId:
+                    description: |-
+                      level project_id.
+                      Project ID (environment) for this resource. Overrides the provider-level project_id.
+                    type: string
+                  projectIdRef:
+                    description: Reference to a Project in project to populate projectId.
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                      namespace:
+                        description: Namespace of the referenced object
+                        type: string
+                      policy:
+                        description: Policies for referencing.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    required:
+                    - name
+                    type: object
+                  projectIdSelector:
+                    description: Selector for a Project in project to populate projectId.
+                    properties:
+                      matchControllerRef:
+                        description: |-
+                          MatchControllerRef ensures an object with the same controller reference
+                          as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                      namespace:
+                        description: Namespace for the selector
+                        type: string
+                      policy:
+                        description: Policies for selection.
+                        properties:
+                          resolution:
+                            default: Required
+                            description: |-
+                              Resolution specifies whether resolution of this reference is required.
+                              The default is 'Required', which means the reconcile will fail if the
+                              reference cannot be resolved. 'Optional' means this reference will be
+                              a no-op if it cannot be resolved.
+                            enum:
+                            - Required
+                            - Optional
+                            type: string
+                          resolve:
+                            description: |-
+                              Resolve specifies when this reference should be resolved. The default
+                              is 'IfNotPresent', which will attempt to resolve the reference only when
+                              the corresponding field is not present. Use 'Always' to resolve the
+                              reference on every reconcile.
+                            enum:
+                            - Always
+                            - IfNotPresent
+                            type: string
+                        type: object
+                    type: object
+                  status:
+                    description: |-
+                      Declare it to drive the experiment through draft → running → paused → stopped; the provider maps the desired state (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as paused = launch+pause, or stopped = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only exposure_frozen state cannot be managed here; resume or end such an experiment in the PostHog UI first. (see below for nested schema)
+                      Desired lifecycle state. Declare it to drive the experiment through `draft` → `running` → `paused` → `stopped`; the provider maps the desired `state` (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as `paused` = launch+pause, or `stopped` = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only `exposure_frozen` state cannot be managed here; resume or end such an experiment in the PostHog UI first.
+                    properties:
+                      state:
+                        description: |-
+                          yet-launched experiment). The lifecycle is forward-only.
+                          Desired lifecycle state — one of `draft`, `running`, `paused`, or `stopped` (required; use `draft` for a not-yet-launched experiment). The lifecycle is forward-only.
+                        type: string
+                      stopped:
+                        description: |-
+                          (Block, Optional) Metadata applied when stopping the experiment (read only when state = "stopped", ignored otherwise). (see below for nested schema)
+                          Metadata applied when stopping the experiment (read only when `state = "stopped"`, ignored otherwise).
+                        properties:
+                          conclusion:
+                            description: |-
+                              stopped experiment is PATCHed and read back).
+                              Conclusion recorded when the experiment is stopped — one of `won`, `lost`, `inconclusive`, `stopped_early`, `invalid`. Fully managed: applied at stop time and editable afterwards (an edit on an already-stopped experiment is PATCHed and read back).
+                            type: string
+                          conclusionComment:
+                            description: |-
+                              text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+                              Free-text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+                            type: string
+                          releaseToEveryone:
+                            description: |-
+                              all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to false. Config-only.
+                              When shipping, prepend a catch-all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to `false`. Config-only.
+                            type: boolean
+                          shipVariant:
+                            description: |-
+                              only; re-ships only when this value changes; clearing it does not un-ship.
+                              Key of the winning variant to ship. Rewrites the linked flag's distribution so this variant gets 100% and ends the experiment. If the flag is managed by a `posthog_feature_flag` resource, set `lifecycle { ignore_changes = [filters] }` on it so it does not revert the shipped distribution. Config-only; re-ships only when this value changes; clearing it does not un-ship.
+                            type: string
+                        type: object
+                    type: object
+                type: object
+              managementPolicies:
+                default:
+                - '*'
+                description: |-
+                  THIS IS A BETA FIELD. It is on by default but can be opted out
+                  through a Crossplane feature flag.
+                  ManagementPolicies specify the array of actions Crossplane is allowed to
+                  take on the managed and external resources.
+                  See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+                  and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+                items:
+                  description: |-
+                    A ManagementAction represents an action that the Crossplane controllers
+                    can take on an external resource.
+                  enum:
+                  - Observe
+                  - Create
+                  - Update
+                  - Delete
+                  - LateInitialize
+                  - '*'
+                  type: string
+                type: array
+              providerConfigRef:
+                default:
+                  kind: ClusterProviderConfig
+                  name: default
+                description: |-
+                  ProviderConfigReference specifies how the provider that will be used to
+                  create, observe, update, and delete this managed resource should be
+                  configured.
+                properties:
+                  kind:
+                    description: Kind of the referenced object.
+                    type: string
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: |-
+                  WriteConnectionSecretToReference specifies the namespace and name of a
+                  Secret to which any connection details for this managed resource should
+                  be written. Connection details frequently include the endpoint, username,
+                  and password required to connect to the managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - forProvider
+            type: object
+            x-kubernetes-validations:
+            - message: spec.forProvider.featureFlagKey is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.featureFlagKey)
+                || (has(self.initProvider) && has(self.initProvider.featureFlagKey))'
+            - message: spec.forProvider.name is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.name)
+                || (has(self.initProvider) && has(self.initProvider.name))'
+          status:
+            description: ExperimentStatus defines the observed state of Experiment.
+            properties:
+              atProvider:
+                properties:
+                  allowUnknownEvents:
+                    description: |-
+                      in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+                      Opt-in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+                    type: boolean
+                  description:
+                    description: |-
+                      (String) Experiment description.
+                      Experiment description.
+                    type: string
+                  exposureCriteria:
+                    description: |-
+                      compare handling as metrics.
+                      Exposure criteria as a JSON object (this is where `filterTestAccounts` lives). Same semantic-compare handling as `metrics`.
+                    type: string
+                  featureFlagKey:
+                    description: |-
+                      keyed in place).
+                      Key of the multivariate feature flag this experiment runs on. Reference a `posthog_feature_flag` resource — e.g. `feature_flag_key = posthog_feature_flag.<name>.key`. The flag must already exist and be multivariate (2–20 variants, one keyed `control`). Changing this forces a new experiment (a linked flag cannot be re-keyed in place).
+                    type: string
+                  holdoutId:
+                    description: |-
+                      (Number) ID of an existing holdout group to reference. Holdout management itself is out of scope.
+                      ID of an existing holdout group to reference. Holdout management itself is out of scope.
+                    type: number
+                  id:
+                    description: (Number) Experiment ID.
+                    type: string
+                  metrics:
+                    description: |-
+                      computed fields (e.g. metric fingerprints) are ignored.
+                      Primary metrics as a JSON array. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Only fields you declare are tracked; server-computed fields (e.g. metric fingerprints) are ignored.
+                    type: string
+                  metricsSecondary:
+                    description: |-
+                      compare handling as metrics.
+                      Secondary metrics as a JSON array. Same semantic-compare handling as `metrics`.
+                    type: string
+                  name:
+                    description: |-
+                      (String) Experiment name.
+                      Experiment name.
+                    type: string
+                  projectId:
+                    description: |-
+                      level project_id.
+                      Project ID (environment) for this resource. Overrides the provider-level project_id.
+                    type: string
+                  status:
+                    description: |-
+                      Declare it to drive the experiment through draft → running → paused → stopped; the provider maps the desired state (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as paused = launch+pause, or stopped = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only exposure_frozen state cannot be managed here; resume or end such an experiment in the PostHog UI first. (see below for nested schema)
+                      Desired lifecycle state. Declare it to drive the experiment through `draft` → `running` → `paused` → `stopped`; the provider maps the desired `state` (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as `paused` = launch+pause, or `stopped` = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only `exposure_frozen` state cannot be managed here; resume or end such an experiment in the PostHog UI first.
+                    properties:
+                      state:
+                        description: |-
+                          yet-launched experiment). The lifecycle is forward-only.
+                          Desired lifecycle state — one of `draft`, `running`, `paused`, or `stopped` (required; use `draft` for a not-yet-launched experiment). The lifecycle is forward-only.
+                        type: string
+                      stopped:
+                        description: |-
+                          (Block, Optional) Metadata applied when stopping the experiment (read only when state = "stopped", ignored otherwise). (see below for nested schema)
+                          Metadata applied when stopping the experiment (read only when `state = "stopped"`, ignored otherwise).
+                        properties:
+                          conclusion:
+                            description: |-
+                              stopped experiment is PATCHed and read back).
+                              Conclusion recorded when the experiment is stopped — one of `won`, `lost`, `inconclusive`, `stopped_early`, `invalid`. Fully managed: applied at stop time and editable afterwards (an edit on an already-stopped experiment is PATCHed and read back).
+                            type: string
+                          conclusionComment:
+                            description: |-
+                              text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+                              Free-text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+                            type: string
+                          releaseToEveryone:
+                            description: |-
+                              all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to false. Config-only.
+                              When shipping, prepend a catch-all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to `false`. Config-only.
+                            type: boolean
+                          shipVariant:
+                            description: |-
+                              only; re-ships only when this value changes; clearing it does not un-ship.
+                              Key of the winning variant to ship. Rewrites the linked flag's distribution so this variant gets 100% and ends the experiment. If the flag is managed by a `posthog_feature_flag` resource, set `lifecycle { ignore_changes = [filters] }` on it so it does not revert the shipped distribution. Config-only; re-ships only when this value changes; clearing it does not un-ship.
+                            type: string
+                        type: object
+                    type: object
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        LastTransitionTime is the last time this condition transitioned from one
+                        status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A Message containing details about this condition's last transition from
+                        one status to another, if any.
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        ObservedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      type: integer
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: |-
+                        Type of this condition. At most one of each condition type may apply to
+                        a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastHandledReconcileAt:
+                description: |-
+                  LastHandledReconcileAt holds the value of the most recent
+                  reconcile-requested-at annotation token that the controller has
+                  processed. Users can compare this to the annotation to determine
+                  whether a reconcile request has been handled.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the latest metadata.generation
+                  which resulted in either a ready state, or stalled due to error
+                  it can not recover from without human intervention.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

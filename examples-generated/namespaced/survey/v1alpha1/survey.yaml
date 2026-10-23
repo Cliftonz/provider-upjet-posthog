@@ -1,0 +1,29 @@
+apiVersion: survey.posthog.m.clifton.quest/v1alpha1
+kind: Survey
+metadata:
+  annotations:
+    meta.upbound.io/example-id: survey/v1alpha1/survey
+  labels:
+    testing.upbound.io/example-name: nps
+  name: nps
+  namespace: crossplane-system
+spec:
+  forProvider:
+    conditionsJson: |-
+      ${jsonencode({
+          url = "https://us.posthog.com/*"
+        })}
+    description: Quarterly NPS survey for PostHog users.
+    name: PostHog NPS
+    questionsJson: |-
+      ${jsonencode([
+          {
+            type          = "rating"
+            question      = "How would you rate your PostHog experience?"
+            scale         = 10
+            buttonText    = "Submit"
+            isNpsQuestion = true
+          }
+        ])}
+    schedule: once
+    type: popover

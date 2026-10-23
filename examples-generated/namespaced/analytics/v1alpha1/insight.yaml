@@ -1,0 +1,14 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Insight
+metadata:
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insight
+  labels:
+    testing.upbound.io/example-name: active_users
+  name: active-users
+  namespace: crossplane-system
+spec:
+  forProvider:
+    description: Daily active users over the past week
+    name: Active users (last 7 days)
+    querySql: ${file("${path.module}/queries/active_users.sql")}

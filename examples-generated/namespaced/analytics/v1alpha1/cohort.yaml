@@ -1,0 +1,26 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Cohort
+metadata:
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/cohort
+  labels:
+    testing.upbound.io/example-name: internal_users
+  name: internal-users
+  namespace: crossplane-system
+spec:
+  forProvider:
+    filters: |-
+      ${jsonencode({
+          properties = {
+            type = "AND"
+            values = [
+              {
+                type     = "person"
+                key      = "email"
+                operator = "icontains"
+                value    = "@example.com"
+              }
+            ]
+          }
+        })}
+    name: Internal users

@@ -1,0 +1,20 @@
+apiVersion: warehouse.posthog.m.clifton.quest/v1alpha1
+kind: ExternalDataSource
+metadata:
+  annotations:
+    meta.upbound.io/example-id: warehouse/v1alpha1/externaldatasource
+  labels:
+    testing.upbound.io/example-name: stripe
+  name: stripe
+  namespace: crossplane-system
+spec:
+  forProvider:
+    jobInputsJsonSecretRef:
+      key: example-key
+      name: example-secret
+    prefix: stripe_
+    schemas:
+    - charges
+    - customers
+    - invoices
+    sourceType: Stripe

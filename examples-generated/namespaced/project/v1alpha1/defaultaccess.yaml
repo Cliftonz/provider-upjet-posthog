@@ -1,0 +1,15 @@
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: DefaultAccess
+metadata:
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/defaultaccess
+  labels:
+    testing.upbound.io/example-name: restrictive
+  name: restrictive
+  namespace: crossplane-system
+spec:
+  forProvider:
+    accessLevel: none
+    projectIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example

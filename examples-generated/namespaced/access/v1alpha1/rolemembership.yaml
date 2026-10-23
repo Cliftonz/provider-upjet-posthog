@@ -1,0 +1,32 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: RoleMembership
+metadata:
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/rolemembership
+  labels:
+    testing.upbound.io/example-name: alice_engineering
+  name: alice-engineering
+  namespace: crossplane-system
+spec:
+  forProvider:
+    organizationId: your-organization-uuid
+    roleIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: engineering
+    userUuid: ${data.posthog_user.alice.uuid}
+
+---
+
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: Role
+metadata:
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/rolemembership
+  labels:
+    testing.upbound.io/example-name: engineering
+  name: engineering
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: Engineering
+    organizationId: your-organization-uuid

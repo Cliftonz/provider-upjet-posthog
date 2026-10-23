@@ -1,0 +1,13 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: Role
+metadata:
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/role
+  labels:
+    testing.upbound.io/example-name: engineering
+  name: engineering
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: Engineering
+    organizationId: your-organization-uuid

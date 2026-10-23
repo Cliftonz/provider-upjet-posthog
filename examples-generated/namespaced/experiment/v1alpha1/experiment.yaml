@@ -1,0 +1,26 @@
+apiVersion: experiment.posthog.m.clifton.quest/v1alpha1
+kind: Experiment
+metadata:
+  annotations:
+    meta.upbound.io/example-id: experiment/v1alpha1/experiment
+  labels:
+    testing.upbound.io/example-name: pricing
+  name: pricing
+  namespace: crossplane-system
+spec:
+  forProvider:
+    description: Does the new pricing layout lift conversion?
+    exposureCriteria: ${jsonencode({ filterTestAccounts = true })}
+    featureFlagKey: ${posthog_feature_flag.pricing.key}
+    metrics: |-
+      ${jsonencode([
+          {
+            kind        = "ExperimentMetric"
+            metric_type = "mean"
+            name        = "Revenue per user"
+            source      = { kind = "EventsNode", event = "purchase", math = "sum" }
+          }
+        ])}
+    name: Pricing page test
+    status:
+    - state: running
