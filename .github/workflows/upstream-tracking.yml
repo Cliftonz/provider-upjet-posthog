@@ -21,33 +21,36 @@ env:
   FORK_REPO: Cliftonz/terraform-provider-posthog
 
 jobs:
-  track:
+  detect:
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.pending.outputs.version }}
+      pr-state: ${{ steps.pr.outputs.state }}
+      fork-tag: ${{ steps.fork-tag.outputs.tag }}
+      git-name: ${{ steps.identity.outputs.name }}
+      git-email: ${{ steps.identity.outputs.email }}
     steps:
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: app
         with:
           client-id: ${{ secrets.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: Cliftonz
-          repositories: provider-upjet-posthog,terraform-provider-posthog
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: main
-          token: ${{ steps.app.outputs.token }}
-          submodules: true
-          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: go.mod
-      - name: Configure git identity
+      - name: Read git identity
+        id: identity
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           SLUG: ${{ steps.app.outputs.app-slug }}
         run: |
           id=$(gh api "/users/${SLUG}%5Bbot%5D" --jq .id)
-          git config --global user.name "${SLUG}[bot]"
-          git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
+          echo "name=${SLUG}[bot]" >> "$GITHUB_OUTPUT"
+          echo "email=${id}+${SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
       - name: Build tracking tool
         run: go build -o "$RUNNER_TEMP/tracking" ./cmd/tracking
       - name: Close skipped PRs
@@ -59,6 +62,7 @@ jobs:
               xargs -r -I{} gh pr close {} --comment "Skipped in hack/upstream-acks.yaml."
           done
       - name: Detect oldest pending version
+        id: pending
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
@@ -66,89 +70,254 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate > "$RUNNER_TEMP/ours.json"
           version=$("$RUNNER_TEMP/tracking" pending hack/upstream-acks.yaml "$RUNNER_TEMP/upstream.json" "$RUNNER_TEMP/ours.json")
           echo "UPSTREAM_VERSION=${version}" >> "$GITHUB_ENV"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
       - name: Read PR state
+        id: pr
         if: env.UPSTREAM_VERSION != ''
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           echo "release|pull request state" > "$RUNNER_TEMP/step"
           gh pr list --head "upstream/v${UPSTREAM_VERSION}" --state all --limit 1 --json state,mergeCommit \
-            --jq 'if length == 0 then "PR_STATE=none" else "PR_STATE=\(.[0].state | ascii_downcase)\nMERGE_SHA=\(.[0].mergeCommit.oid // "")" end' \
-            >> "$GITHUB_ENV"
-
+            --jq 'if length == 0 then "state=none" else "state=\(.[0].state | ascii_downcase)\nmerge-sha=\(.[0].mergeCommit.oid // "")" end' \
+            >> "$GITHUB_OUTPUT"
       - name: Dispatch tag for merged PR
-        if: env.PR_STATE == 'merged'
+        if: steps.pr.outputs.state == 'merged'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          MERGE_SHA: ${{ steps.pr.outputs.merge-sha }}
         run: |
           echo "release|tag dispatch" > "$RUNNER_TEMP/step"
           gh workflow run tag.yaml -f version="$UPSTREAM_VERSION" -f sha="$MERGE_SHA"
       - name: Report closed PR
-        if: env.PR_STATE == 'closed'
+        if: steps.pr.outputs.state == 'closed'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: hack/failure-issue.sh "$UPSTREAM_VERSION" "pull request closed unmerged" release
-
       - name: Find fork tag
-        if: env.PR_STATE == 'none'
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+        id: fork-tag
+        if: steps.pr.outputs.state == 'none'
         run: |
           echo "fork-rebase|fork" > "$RUNNER_TEMP/step"
-          git clone "https://x-access-token:${GH_TOKEN}@github.com/${FORK_REPO}.git" "$RUNNER_TEMP/fork"
-          tag=$(git -C "$RUNNER_TEMP/fork" ls-remote --tags origin | "$RUNNER_TEMP/tracking" fork-tag "$UPSTREAM_VERSION")
-          echo "FORK_TAG=${tag}" >> "$GITHUB_ENV"
+          tag=$(git ls-remote --tags "https://github.com/${FORK_REPO}.git" | "$RUNNER_TEMP/tracking" fork-tag "$UPSTREAM_VERSION")
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure
+          path: ${{ runner.temp }}/step
+          overwrite: true
+
+  fork:
+    needs: detect
+    if: needs.detect.outputs.pr-state == 'none'
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.rebase.outputs.tag || needs.detect.outputs.fork-tag }}
+      base: ${{ steps.rebase.outputs.base }}
+    env:
+      UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
+      FORK_TAG: ${{ needs.detect.outputs.fork-tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+      - name: Clone fork
+        env:
+          GIT_NAME: ${{ needs.detect.outputs.git-name }}
+          GIT_EMAIL: ${{ needs.detect.outputs.git-email }}
+        run: |
+          echo "fork-rebase|fork" > "$RUNNER_TEMP/step"
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          git clone "https://github.com/${FORK_REPO}.git" "$RUNNER_TEMP/fork"
       - name: Check existing fork tag
-        if: env.PR_STATE == 'none' && env.FORK_TAG != ''
+        if: env.FORK_TAG != ''
         run: |
           echo "fork-fix|fork check" > "$RUNNER_TEMP/step"
           git -C "$RUNNER_TEMP/fork" -c advice.detachedHead=false checkout "$FORK_TAG"
           hack/fork-checks.sh "$RUNNER_TEMP/fork"
       - name: Rebase fork
-        if: env.PR_STATE == 'none' && env.FORK_TAG == ''
+        id: rebase
+        if: env.FORK_TAG == ''
         run: |
           echo "fork-rebase|fork rebase" > "$RUNNER_TEMP/step"
+          base=$(git -C "$RUNNER_TEMP/fork" rev-parse origin/public-provider)
           hack/fork-rebase.sh "$UPSTREAM_VERSION" "$RUNNER_TEMP/fork"
-          echo "FORK_TAG=v${UPSTREAM_VERSION}-public" >> "$GITHUB_ENV"
+          git -C "$RUNNER_TEMP/fork" bundle create "$RUNNER_TEMP/fork.bundle" public-provider "v${UPSTREAM_VERSION}-public"
+          echo "base=${base}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${UPSTREAM_VERSION}-public" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.rebase.outcome == 'success'
+        with:
+          name: fork
+          path: ${{ runner.temp }}/fork.bundle
+          overwrite: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure
+          path: ${{ runner.temp }}/step
+          overwrite: true
+
+  fork-push:
+    needs: fork
+    if: needs.fork.outputs.base != ''
+    runs-on: ubuntu-24.04
+    env:
+      FORK_TAG: ${{ needs.fork.outputs.tag }}
+      FORK_BASE: ${{ needs.fork.outputs.base }}
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: Cliftonz
+          repositories: terraform-provider-posthog
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: fork
+          path: ${{ runner.temp }}
+      - name: Push fork branch and tag
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          echo "fork-rebase|fork push" > "$RUNNER_TEMP/step"
+          git init -q "$RUNNER_TEMP/fork"
+          git -C "$RUNNER_TEMP/fork" fetch -q "$RUNNER_TEMP/fork.bundle" \
+            public-provider:public-provider "refs/tags/${FORK_TAG}:refs/tags/${FORK_TAG}"
+          git -C "$RUNNER_TEMP/fork" push --atomic --force-with-lease="public-provider:${FORK_BASE}" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${FORK_REPO}.git" public-provider "refs/tags/${FORK_TAG}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure
+          path: ${{ runner.temp }}/step
+          overwrite: true
+
+  generate:
+    needs: [detect, fork, fork-push]
+    if: ${{ !cancelled() && needs.fork.result == 'success' && needs.fork-push.result != 'failure' }}
+    runs-on: ubuntu-24.04
+    env:
+      UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
+      FORK_TAG: ${{ needs.fork.outputs.tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          submodules: true
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
       - name: Bump pins
-        if: env.PR_STATE == 'none'
         run: |
           echo "build|bump" > "$RUNNER_TEMP/step"
+          git clone -q --depth 1 --branch "$FORK_TAG" "https://github.com/${FORK_REPO}.git" "$RUNNER_TEMP/fork"
           hack/bump.sh "$UPSTREAM_VERSION" "$FORK_TAG" "$RUNNER_TEMP/fork"
       - name: Regenerate
-        if: env.PR_STATE == 'none'
         run: |
           echo "generation|generation" > "$RUNNER_TEMP/step"
           make generate
       - name: Build
-        if: env.PR_STATE == 'none'
         run: |
           echo "build|build" > "$RUNNER_TEMP/step"
           make -j2 build
       - name: Breaking-change gate
-        if: env.PR_STATE == 'none'
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "breaking-change|breaking-change gate" > "$RUNNER_TEMP/step"
           hack/breaking-changes.sh all | tee "$RUNNER_TEMP/affected"
       - name: New-resource gate
-        if: env.PR_STATE == 'none'
         run: |
           echo "new-resource|new-resource gate" > "$RUNNER_TEMP/step"
           go run ./cmd/tracking new-resources config/schema.json |
-            "$RUNNER_TEMP/tracking" gate hack/upstream-acks.yaml "$UPSTREAM_VERSION" new-resource |
+            go run ./cmd/tracking gate hack/upstream-acks.yaml "$UPSTREAM_VERSION" new-resource |
             tee "$RUNNER_TEMP/affected"
+      - name: Export changes
+        run: |
+          git add -A
+          git diff --cached --binary > "$RUNNER_TEMP/changes.patch"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: changes
+          path: ${{ runner.temp }}/changes.patch
+          overwrite: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure
+          path: |
+            ${{ runner.temp }}/step
+            ${{ runner.temp }}/affected
+          overwrite: true
+
+  pr:
+    needs: [detect, generate]
+    if: ${{ !cancelled() && needs.generate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    env:
+      UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: changes
+          path: ${{ runner.temp }}
       - name: Open PR
-        if: env.PR_STATE == 'none'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          GIT_NAME: ${{ needs.detect.outputs.git-name }}
+          GIT_EMAIL: ${{ needs.detect.outputs.git-email }}
         run: |
           echo "release|pull request" > "$RUNNER_TEMP/step"
-          hack/open-pr.sh "$UPSTREAM_VERSION"
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          hack/open-pr.sh "$UPSTREAM_VERSION" "$RUNNER_TEMP/changes.patch"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure
+          path: ${{ runner.temp }}/step
+          overwrite: true
 
+  report:
+    needs: [detect, fork, fork-push, generate, pr]
+    if: failure() && needs.detect.outputs.version != ''
+    runs-on: ubuntu-24.04
+    env:
+      UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: failure
+          path: ${{ runner.temp }}
       - name: Open failure issue
-        if: failure() && env.UPSTREAM_VERSION != ''
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |

@@ -20,7 +20,4 @@ if [ -d "$fork/internal/provider" ]; then
 fi
 
 "$hack/fork-checks.sh" "$fork"
-
-git -C "$fork" push --force-with-lease origin public-provider
 git -C "$fork" tag "v${version}-public"
-git -C "$fork" push origin "v${version}-public"
