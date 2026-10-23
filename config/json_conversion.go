@@ -1,0 +1,31 @@
+package config
+
+import (
+	"encoding/json"
+	"strings"
+
+	ujconfig "github.com/crossplane/upjet/v2/pkg/config"
+)
+
+type canonicalJSON struct{}
+
+func (canonicalJSON) Convert(params map[string]any, _ *ujconfig.Resource, mode ujconfig.Mode) (map[string]any, error) {
+	if mode != ujconfig.ToTerraform {
+		return params, nil
+	}
+	for key, value := range params {
+		s, ok := value.(string)
+		if !ok || !strings.HasSuffix(key, "_json") {
+			continue
+		}
+		decoder := json.NewDecoder(strings.NewReader(s))
+		decoder.UseNumber()
+		var parsed any
+		if decoder.Decode(&parsed) != nil {
+			continue
+		}
+		canonical, _ := json.Marshal(parsed)
+		params[key] = string(canonical)
+	}
+	return params, nil
+}
