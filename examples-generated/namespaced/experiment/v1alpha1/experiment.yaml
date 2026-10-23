@@ -11,7 +11,9 @@ spec:
   forProvider:
     description: Does the new pricing layout lift conversion?
     exposureCriteria: ${jsonencode({ filterTestAccounts = true })}
-    featureFlagKey: ${posthog_feature_flag.pricing.key}
+    featureFlagKeySelector:
+      matchLabels:
+        testing.upbound.io/example-name: pricing
     metrics: |-
       ${jsonencode([
           {

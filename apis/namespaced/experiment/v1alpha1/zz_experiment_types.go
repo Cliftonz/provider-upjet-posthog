@@ -29,7 +29,17 @@ type ExperimentInitParameters struct {
 
 	// keyed in place).
 	// Key of the multivariate feature flag this experiment runs on. Reference a `posthog_feature_flag` resource — e.g. `feature_flag_key = posthog_feature_flag.<name>.key`. The flag must already exist and be multivariate (2–20 variants, one keyed `control`). Changing this forces a new experiment (a linked flag cannot be re-keyed in place).
+	// +crossplane:generate:reference:type=github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/featureflag/v1alpha1.FeatureFlag
+	// +crossplane:generate:reference:extractor=github.com/crossplane/upjet/v2/pkg/resource.ExtractParamPath("key", true)
 	FeatureFlagKey *string `json:"featureFlagKey,omitempty" tf:"feature_flag_key,omitempty"`
+
+	// Reference to a FeatureFlag in featureflag to populate featureFlagKey.
+	// +kubebuilder:validation:Optional
+	FeatureFlagKeyRef *v2.NamespacedReference `json:"featureFlagKeyRef,omitempty" tf:"-"`
+
+	// Selector for a FeatureFlag in featureflag to populate featureFlagKey.
+	// +kubebuilder:validation:Optional
+	FeatureFlagKeySelector *v2.NamespacedSelector `json:"featureFlagKeySelector,omitempty" tf:"-"`
 
 	// (Number) ID of an existing holdout group to reference. Holdout management itself is out of scope.
 	// ID of an existing holdout group to reference. Holdout management itself is out of scope.
@@ -130,8 +140,18 @@ type ExperimentParameters struct {
 
 	// keyed in place).
 	// Key of the multivariate feature flag this experiment runs on. Reference a `posthog_feature_flag` resource — e.g. `feature_flag_key = posthog_feature_flag.<name>.key`. The flag must already exist and be multivariate (2–20 variants, one keyed `control`). Changing this forces a new experiment (a linked flag cannot be re-keyed in place).
+	// +crossplane:generate:reference:type=github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/featureflag/v1alpha1.FeatureFlag
+	// +crossplane:generate:reference:extractor=github.com/crossplane/upjet/v2/pkg/resource.ExtractParamPath("key", true)
 	// +kubebuilder:validation:Optional
 	FeatureFlagKey *string `json:"featureFlagKey,omitempty" tf:"feature_flag_key,omitempty"`
+
+	// Reference to a FeatureFlag in featureflag to populate featureFlagKey.
+	// +kubebuilder:validation:Optional
+	FeatureFlagKeyRef *v2.NamespacedReference `json:"featureFlagKeyRef,omitempty" tf:"-"`
+
+	// Selector for a FeatureFlag in featureflag to populate featureFlagKey.
+	// +kubebuilder:validation:Optional
+	FeatureFlagKeySelector *v2.NamespacedSelector `json:"featureFlagKeySelector,omitempty" tf:"-"`
 
 	// (Number) ID of an existing holdout group to reference. Holdout management itself is out of scope.
 	// ID of an existing holdout group to reference. Holdout management itself is out of scope.
@@ -305,7 +325,6 @@ type ExperimentStatus struct {
 type Experiment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.featureFlagKey) || (has(self.initProvider) && has(self.initProvider.featureFlagKey))",message="spec.forProvider.featureFlagKey is a required parameter"
 	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.name) || (has(self.initProvider) && has(self.initProvider.name))",message="spec.forProvider.name is a required parameter"
 	Spec   ExperimentSpec   `json:"spec"`
 	Status ExperimentStatus `json:"status,omitempty"`

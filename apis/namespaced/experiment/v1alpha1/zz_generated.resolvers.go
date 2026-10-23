@@ -12,6 +12,7 @@ import (
 	apisresolver "github.com/Cliftonz/provider-upjet-posthog/internal/apis"
 	reference "github.com/crossplane/crossplane-runtime/v2/pkg/reference"
 	xpresource "github.com/crossplane/crossplane-runtime/v2/pkg/resource"
+	resource "github.com/crossplane/upjet/v2/pkg/resource"
 	errors "github.com/pkg/errors"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -24,6 +25,26 @@ func (mg *Experiment) ResolveReferences( // ResolveReferences of this Experiment
 
 	var rsp reference.NamespacedResolutionResponse
 	var err error
+	{
+		m, l, err = apisresolver.GetManagedResource("featureflag.posthog.m.clifton.quest", "v1alpha1", "FeatureFlag", "FeatureFlagList")
+		if err != nil {
+			return errors.Wrap(err, "failed to get the reference target managed resource and its list for reference resolution")
+		}
+
+		rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+			CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.FeatureFlagKey),
+			Extract:      resource.ExtractParamPath("key", true),
+			Namespace:    mg.GetNamespace(),
+			Reference:    mg.Spec.ForProvider.FeatureFlagKeyRef,
+			Selector:     mg.Spec.ForProvider.FeatureFlagKeySelector,
+			To:           reference.To{List: l, Managed: m},
+		})
+	}
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.FeatureFlagKey")
+	}
+	mg.Spec.ForProvider.FeatureFlagKey = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.ForProvider.FeatureFlagKeyRef = rsp.ResolvedReference
 	{
 		m, l, err = apisresolver.GetManagedResource("project.posthog.m.clifton.quest", "v1alpha1", "Project", "ProjectList")
 		if err != nil {
@@ -44,6 +65,26 @@ func (mg *Experiment) ResolveReferences( // ResolveReferences of this Experiment
 	}
 	mg.Spec.ForProvider.ProjectID = reference.ToPtrValue(rsp.ResolvedValue)
 	mg.Spec.ForProvider.ProjectIDRef = rsp.ResolvedReference
+	{
+		m, l, err = apisresolver.GetManagedResource("featureflag.posthog.m.clifton.quest", "v1alpha1", "FeatureFlag", "FeatureFlagList")
+		if err != nil {
+			return errors.Wrap(err, "failed to get the reference target managed resource and its list for reference resolution")
+		}
+
+		rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+			CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.FeatureFlagKey),
+			Extract:      resource.ExtractParamPath("key", true),
+			Namespace:    mg.GetNamespace(),
+			Reference:    mg.Spec.InitProvider.FeatureFlagKeyRef,
+			Selector:     mg.Spec.InitProvider.FeatureFlagKeySelector,
+			To:           reference.To{List: l, Managed: m},
+		})
+	}
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.InitProvider.FeatureFlagKey")
+	}
+	mg.Spec.InitProvider.FeatureFlagKey = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.InitProvider.FeatureFlagKeyRef = rsp.ResolvedReference
 	{
 		m, l, err = apisresolver.GetManagedResource("project.posthog.m.clifton.quest", "v1alpha1", "Project", "ProjectList")
 		if err != nil {

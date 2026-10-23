@@ -63,6 +63,16 @@ func (in *ExperimentInitParameters) DeepCopyInto(out *ExperimentInitParameters) 
 		*out = new(string)
 		**out = **in
 	}
+	if in.FeatureFlagKeyRef != nil {
+		in, out := &in.FeatureFlagKeyRef, &out.FeatureFlagKeyRef
+		*out = new(v2.NamespacedReference)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.FeatureFlagKeySelector != nil {
+		in, out := &in.FeatureFlagKeySelector, &out.FeatureFlagKeySelector
+		*out = new(v2.NamespacedSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.HoldoutID != nil {
 		in, out := &in.HoldoutID, &out.HoldoutID
 		*out = new(float64)
@@ -239,6 +249,16 @@ func (in *ExperimentParameters) DeepCopyInto(out *ExperimentParameters) {
 		in, out := &in.FeatureFlagKey, &out.FeatureFlagKey
 		*out = new(string)
 		**out = **in
+	}
+	if in.FeatureFlagKeyRef != nil {
+		in, out := &in.FeatureFlagKeyRef, &out.FeatureFlagKeyRef
+		*out = new(v2.NamespacedReference)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.FeatureFlagKeySelector != nil {
+		in, out := &in.FeatureFlagKeySelector, &out.FeatureFlagKeySelector
+		*out = new(v2.NamespacedSelector)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.HoldoutID != nil {
 		in, out := &in.HoldoutID, &out.HoldoutID

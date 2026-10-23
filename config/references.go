@@ -52,4 +52,8 @@ func configureReferences(pc *ujconfig.Provider) {
 			r.References[field] = ujconfig.Reference{TerraformName: target}
 		}
 	}
+	pc.Resources["posthog_experiment"].References["feature_flag_key"] = ujconfig.Reference{
+		TerraformName: "posthog_feature_flag",
+		Extractor:     `github.com/crossplane/upjet/v2/pkg/resource.ExtractParamPath("key", true)`,
+	}
 }
