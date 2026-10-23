@@ -1,40 +1,1516 @@
-name: hashicorp/null
+name: posthog/posthog
 resources:
-    null_resource:
+    posthog_access_control:
         subCategory: ""
-        description: The null_resource resource implements the standard resource lifecycle but takes no further action. On Terraform 1.4 and later, use the terraform_data resource type https://developer.hashicorp.com/terraform/language/resources/terraform-data instead. Terraform 1.9 and later support the moved configuration block from null_resource to terraform_data. The triggers argument allows specifying an arbitrary set of values that, when changed, will cause the resource to be replaced.
-        name: null_resource
-        title: null_resource Resource - terraform-provider-null
+        description: 'Manages access control for resources within a PostHog project. This resource allows you to set access levels for resource types (like feature flags, dashboards, etc.). You can set permissions at three levels: Project default: Applies to everyone in the project for this resource type. Omit both role and organization_member.Role-specific: Applies to members of a specific role. Set role.Member-specific: Applies to a specific organization member. Set organization_member. Additionally, you can scope to: Resource-type level: Applies to all resources of a type (e.g., all dashboards). Omit resource_id.Resource-instance level: Applies to a specific resource (e.g., one dashboard). Set resource_id. You can combine these: set a project default for all dashboards, or set a project default for a specific dashboard. ~> Note: role and organization_member are mutually exclusive - you cannot specify both. Omit both for project defaults. ~> Enterprise Feature: Role-based access control (RBAC) requires a PostHog Enterprise plan. See Access Control documentation https://posthog.com/docs/settings/access-control for more details.'
+        name: posthog_access_control
+        title: posthog_access_control Resource - posthog
         examples:
-            - name: cluster
+            - name: surveys_project_default
               manifest: |-
                 {
-                  "connection": [
-                    {
-                      "host": "${element(aws_instance.cluster[*].public_ip, 0)}"
-                    }
-                  ],
-                  "provisioner": {
-                    "remote-exec": [
-                      {
-                        "inline": [
-                          "bootstrap-cluster.sh ${join(\" \",\n      aws_instance.cluster[*].private_ip)}"
-                        ]
-                      }
-                    ]
-                  },
-                  "triggers": {
-                    "cluster_instance_ids": "${join(\",\", aws_instance.cluster[*].id)}"
-                  }
+                  "access_level": "viewer",
+                  "resource": "survey"
+                }
+            - name: analytics_dashboard_default
+              manifest: |-
+                {
+                  "access_level": "viewer",
+                  "resource": "dashboard",
+                  "resource_id": "${posthog_dashboard.analytics.id}"
+                }
+              references:
+                resource_id: posthog_dashboard.analytics.id
+            - name: engineering_feature_flags
+              manifest: |-
+                {
+                  "access_level": "editor",
+                  "resource": "feature_flag",
+                  "role": "${posthog_role.engineering.id}"
+                }
+              references:
+                role: posthog_role.engineering.id
+            - name: support_dashboards
+              manifest: |-
+                {
+                  "access_level": "viewer",
+                  "resource": "dashboard",
+                  "role": "${posthog_role.support.id}"
+                }
+              references:
+                role: posthog_role.support.id
+            - name: support_analytics_dashboard
+              manifest: |-
+                {
+                  "access_level": "viewer",
+                  "resource": "dashboard",
+                  "resource_id": "${posthog_dashboard.analytics.id}",
+                  "role": "${posthog_role.support.id}"
+                }
+              references:
+                resource_id: posthog_dashboard.analytics.id
+                role: posthog_role.support.id
+            - name: support_no_experiments
+              manifest: |-
+                {
+                  "access_level": "none",
+                  "resource": "experiment",
+                  "role": "${posthog_role.support.id}"
+                }
+              references:
+                role: posthog_role.support.id
+            - name: alice_analytics_dashboard
+              manifest: |-
+                {
+                  "access_level": "editor",
+                  "organization_member": "${posthog_organization_member.alice.id}",
+                  "resource": "dashboard",
+                  "resource_id": "${posthog_dashboard.analytics.id}"
+                }
+              references:
+                organization_member: posthog_organization_member.alice.id
+                resource_id: posthog_dashboard.analytics.id
+        argumentDocs:
+            access_level: (String) The access level to grant. Common values are none, viewer, editor.
+            created_at: (String) Timestamp when the access control was created.
+            id: (String) Composite identifier for the access control.
+            organization_member: .
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            resource: '(String) The resource type to control access for. Valid values include: action, alert, annotation, cohort, dashboard, experiment, feature_flag, insight, notebook, session_recording, survey, etc.'
+            resource_id: .
+            role: and organization_member.
+            updated_at: (String) Timestamp when the access control was last updated.
+        importStatements:
+            - |-
+              # Import format for project default (all resources of a type):
+              # project_id/resource_type/default
+              terraform import posthog_access_control.surveys_project_default 12345/survey/default
+
+              # Import format for project default on a specific resource:
+              # project_id/resource_type/resource_id/default
+              terraform import posthog_access_control.analytics_dashboard_default 12345/dashboard/999/default
+
+              # Import format for role-based access control (resource type level):
+              # project_id/resource_type/role/role_id
+              terraform import posthog_access_control.engineering_feature_flags 12345/feature_flag/role/abc-123-def
+
+              # Import format for member-based access control (resource type level):
+              # project_id/resource_type/member/member_id
+              terraform import posthog_access_control.alice_dashboards 12345/dashboard/member/xyz-456-uvw
+
+              # Import format for role-based access control (specific resource):
+              # project_id/resource_type/resource_id/role/role_id
+              terraform import posthog_access_control.role_specific_dashboard 12345/dashboard/999/role/abc-123-def
+
+              # Import format for member-based access control (specific resource):
+              # project_id/resource_type/resource_id/member/member_id
+              terraform import posthog_access_control.alice_specific_dashboard 12345/dashboard/999/member/xyz-456-uvw
+    posthog_action:
+        subCategory: ""
+        description: PostHog Action resource
+        name: posthog_action
+        title: posthog_action Resource - posthog
+        examples:
+            - name: simple
+              manifest: |-
+                {
+                  "name": "User Signed Up"
+                }
+            - name: pageview_tracking
+              manifest: |-
+                {
+                  "description": "Tracks when a user visits the pricing page",
+                  "name": "Visited Pricing Page",
+                  "steps_json": "${jsonencode([\n    {\n      event        = \"$pageview\"\n      url          = \"https://example.com/pricing\"\n      url_matching = \"exact\"\n    }\n  ])}",
+                  "tags": [
+                    "marketing",
+                    "conversion"
+                  ]
+                }
+            - name: checkout_funnel
+              manifest: |-
+                {
+                  "description": "Tracks key interactions in the checkout flow",
+                  "name": "Checkout Interaction",
+                  "steps_json": "${jsonencode([\n    {\n      event        = \"$pageview\"\n      url          = \"/checkout\"\n      url_matching = \"contains\"\n    },\n    {\n      event    = \"$autocapture\"\n      tag_name = \"button\"\n      text     = \"Place Order\"\n    },\n    {\n      event = \"purchase_completed\"\n      properties = [\n        {\n          key      = \"amount\"\n          type     = \"event\"\n          value    = \"0\"\n          operator = \"gt\"\n        }\n      ]\n    }\n  ])}",
+                  "tags": [
+                    "conversion",
+                    "checkout"
+                  ]
+                }
+            - name: cta_click
+              manifest: |-
+                {
+                  "name": "Clicked CTA Button",
+                  "steps_json": "${jsonencode([\n    {\n      event    = \"$autocapture\"\n      selector = \"button.cta-primary\"\n    }\n  ])}"
+                }
+        argumentDocs:
+            created_at: (String) Timestamp when the action was created.
+            deleted: (Boolean) Whether the action is soft-deleted. Terraform will restore soft-deleted actions on apply.
+            description: (String) Action description
+            id: (Number) Action ID
+            name: (String) Action name
+            post_to_slack: (Boolean) Whether to post to Slack when the action is triggered
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            slack_message_format: (String) Slack message format string
+            steps_json: (String) JSON-encoded array of action step objects. See the ActionStep schema for available fields.
+            tags: (Set of String) Set of tags for the action
+        importStatements:
+            - |-
+              # Import using: project_id/action_id
+              terraform import posthog_action.example 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_action.example 678
+    posthog_alert Resource - posthog:
+        subCategory: ""
+        description: Manage PostHog alerts. Alerts notify you when an insight's value crosses a threshold.
+        name: posthog_alert Resource - posthog
+        title: posthog_alert Resource - posthog
+        argumentDocs:
+            blocked_windows: (Attributes Set) Blocked time windows, half-open [start, end). Windows must not overlap or touch, except that one may end at 00:00 where another starts. A window may wrap midnight (end before start), but only as the sole window, and two windows meeting at midnight are only allowed alongside a third. PostHog enforces its own limits on window length and count and reports them on apply. Remove schedule_restriction to disable quiet hours. (see below for nested schema)
+            calculation_interval: '(String) How often to check the alert: hourly, daily, weekly, or monthly.'
+            check_ongoing_interval: (Boolean) Whether to check the ongoing (incomplete) interval. When false, only completed intervals are checked. Trends alerts only.
+            column: (String) Name of the result column to evaluate. When unset, the single numeric column is used, and PostHog errors if the result has more than one. SQL alerts only.
+            condition_type: '(String) Condition type: absolute_value, relative_increase, or relative_decrease.'
+            enabled: (Boolean) Whether the alert is enabled. Defaults to true.
+            end: (String) End time HH:MM (24-hour, project timezone). Exclusive.
+            evaluation: '(String) How to read the rows a SQL (HogQL) insight returns: last_row when the query is ordered oldest to newest, first_row when it is ordered newest to oldest, or any_row to fire if any row breaches. Setting this makes the alert a SQL alert; leave it unset and set series_index for a Trends alert. any_row only works with condition_type = "absolute_value".'
+            id: (String) UUID of the alert.
+            insight: (Number) ID of the insight this alert monitors.
+            label_column: (String) Column whose value names the evaluated row in the notification. When unset, the first non-evaluated column is used. SQL alerts only.
+            name: (String) Name of the alert.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            schedule_restriction: '(Attributes) Quiet hours: local time windows during which the alert is not evaluated. Times use the project timezone. (see below for nested schema)'
+            series_index: (Number) Index of the trend series to monitor (0-based). Required for alerts on a Trends insight, and mutually exclusive with evaluation.
+            skip_weekend: (Boolean) Whether to skip checking the alert on weekends.
+            start: (String) Start time HH:MM (24-hour, project timezone). Inclusive.
+            subscribed_users: (Set of Number) List of user IDs to notify when the alert fires.
+            threshold_lower: (Number) Lower bound of the threshold. Alert fires when value goes below this.
+            threshold_type: '(String) Type of threshold: absolute for fixed values, percentage for relative changes.'
+            threshold_upper: (Number) Upper bound of the threshold. Alert fires when value goes above this.
+        importStatements:
+            - |-
+              # Import using: project_id/alert_uuid
+              terraform import posthog_alert.example 12345/your-alert-uuid
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_alert.example your-alert-uuid
+    posthog_cohort:
+        subCategory: ""
+        description: PostHog Cohort resource
+        name: posthog_cohort
+        title: posthog_cohort Resource - posthog
+        examples:
+            - name: internal_users
+              manifest: |-
+                {
+                  "filters": "${jsonencode({\n    properties = {\n      type = \"AND\"\n      values = [\n        {\n          type     = \"person\"\n          key      = \"email\"\n          operator = \"icontains\"\n          value    = \"@example.com\"\n        }\n      ]\n    }\n  })}",
+                  "name": "Internal users"
                 }
               dependencies:
-                aws_instance.cluster: |-
+                posthog_feature_flag.beta_feature: |-
                     {
-                      "ami": "ami-0dcc1e21636832c5d",
-                      "count": 3,
-                      "instance_type": "m5.large"
+                      "active": true,
+                      "filters": "${jsonencode({\n    groups = [\n      {\n        properties = [\n          {\n            type  = \"cohort\"\n            key   = \"id\"\n            value = posthog_cohort.beta_testers.id\n          }\n        ]\n        rollout_percentage = 100\n      }\n    ]\n  })}",
+                      "key": "beta-feature"
+                    }
+            - name: engaged_customers
+              manifest: |-
+                {
+                  "description": "Paying accounts that logged in during the last week",
+                  "filters": "${jsonencode({\n    properties = {\n      type = \"AND\"\n      values = [\n        {\n          type     = \"person\"\n          key      = \"plan\"\n          operator = \"exact\"\n          value    = [\"pro\", \"enterprise\"]\n        },\n        {\n          type          = \"behavioral\"\n          key           = \"$pageview\"\n          value         = \"performed_event\"\n          event_type    = \"events\"\n          time_value    = 7\n          time_interval = \"day\"\n        }\n      ]\n    }\n  })}",
+                  "name": "Engaged customers"
+                }
+              dependencies:
+                posthog_feature_flag.beta_feature: |-
+                    {
+                      "active": true,
+                      "filters": "${jsonencode({\n    groups = [\n      {\n        properties = [\n          {\n            type  = \"cohort\"\n            key   = \"id\"\n            value = posthog_cohort.beta_testers.id\n          }\n        ]\n        rollout_percentage = 100\n      }\n    ]\n  })}",
+                      "key": "beta-feature"
+                    }
+            - name: beta_testers
+              manifest: |-
+                {
+                  "description": "Hand-picked accounts for the beta programme",
+                  "is_static": true,
+                  "name": "Beta testers"
+                }
+              dependencies:
+                posthog_feature_flag.beta_feature: |-
+                    {
+                      "active": true,
+                      "filters": "${jsonencode({\n    groups = [\n      {\n        properties = [\n          {\n            type  = \"cohort\"\n            key   = \"id\"\n            value = posthog_cohort.beta_testers.id\n          }\n        ]\n        rollout_percentage = 100\n      }\n    ]\n  })}",
+                      "key": "beta-feature"
                     }
         argumentDocs:
-            id: (String) This is set to a random value at create time.
-            triggers: (Map of String) A map of arbitrary strings that, when changed, will force the null resource to be replaced, re-running any associated provisioners.
-        importStatements: []
+            created_at: (String) Timestamp when the cohort was created.
+            deleted: (Boolean) Whether the cohort is soft-deleted. PostHog does not permit hard deletion of cohorts, so destroying this resource marks it deleted. Terraform will restore soft-deleted cohorts on apply.
+            description: (String) Cohort description
+            filters: '(String) Cohort membership rules as JSON, matching the filters object of the cohorts API. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Only the fields declared here are tracked: PostHog annotates saved cohorts with computed fields (bytecode, conditionHash) that would otherwise surface as perpetual drift.'
+            id: (Number) Cohort ID
+            is_static: (Boolean) Whether the cohort is static (a fixed list of persons) rather than dynamic (recomputed by PostHog from filters). Defaults to false. Membership of a static cohort is not managed by this resource.
+            name: (String) Cohort name
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+        importStatements:
+            - |-
+              # Import using: project_id/cohort_id
+              terraform import posthog_cohort.example 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_cohort.example 678
+    posthog_dashboard Resource - posthog:
+        subCategory: ""
+        description: PostHog Dashboard resource
+        name: posthog_dashboard Resource - posthog
+        title: posthog_dashboard Resource - posthog
+        argumentDocs:
+            deleted: (Boolean) Whether the dashboard is deleted (soft delete)
+            description: (String) Dashboard description
+            id: (Number) Dashboard ID
+            name: (String) Dashboard name
+            pinned: (Boolean) Whether the dashboard is pinned
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            tags: (Set of String) Set of tags for the dashboard
+        importStatements:
+            - |-
+              # Import using: project_id/dashboard_id
+              terraform import posthog_dashboard.example 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_dashboard.example 678
+    posthog_dashboard_layout:
+        subCategory: ""
+        description: 'Manages the tile layout of a PostHog dashboard. This resource is fully authoritative: it manages all tiles on the dashboard. Unmanaged insight tiles will have their layouts cleared; unmanaged text tiles will be deleted. On destroy, all text tiles are removed and insight tile layouts are cleared.'
+        name: posthog_dashboard_layout
+        title: posthog_dashboard_layout Resource - posthog
+        examples:
+            - name: engineering
+              manifest: |-
+                {
+                  "dashboard_id": "${posthog_dashboard.engineering.id}",
+                  "depends_on": [
+                    "${posthog_insight.pageviews}",
+                    "${posthog_insight.signups}"
+                  ],
+                  "tiles": [
+                    {
+                      "layouts_json": "${jsonencode({ sm = { x = 0, y = 0, w = 12, h = 1 } })}",
+                      "text_body": "## Key Metrics"
+                    },
+                    {
+                      "color": "blue",
+                      "insight_id": "${posthog_insight.pageviews.id}",
+                      "layouts_json": "${jsonencode({ sm = { x = 0, y = 1, w = 6, h = 4 } })}",
+                      "show_description": false
+                    },
+                    {
+                      "insight_id": "${posthog_insight.signups.id}",
+                      "layouts_json": "${jsonencode({ sm = { x = 6, y = 1, w = 6, h = 4 } })}",
+                      "show_description": false
+                    }
+                  ]
+                }
+              references:
+                dashboard_id: posthog_dashboard.engineering.id
+              dependencies:
+                posthog_dashboard.engineering: |-
+                    {
+                      "name": "Engineering Metrics"
+                    }
+                posthog_insight.pageviews: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.engineering.id}"
+                      ],
+                      "depends_on": [
+                        "${posthog_dashboard.engineering}"
+                      ],
+                      "name": "Page Views",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"$pageview\", math = \"total\" }]\n    }\n  })}"
+                    }
+                posthog_insight.signups: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.engineering.id}"
+                      ],
+                      "depends_on": [
+                        "${posthog_dashboard.engineering}"
+                      ],
+                      "name": "Sign-ups",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"user_signed_up\", math = \"total\" }]\n    }\n  })}"
+                    }
+            - name: dynamic
+              manifest: |-
+                {
+                  "dashboard_id": "${posthog_dashboard.engineering.id}",
+                  "tiles": "${[for tile in var.insight_tiles : {\n    insight_id   = tile.insight_id\n    layouts_json = jsonencode(tile.layouts)\n  }]}"
+                }
+              references:
+                dashboard_id: posthog_dashboard.engineering.id
+              dependencies:
+                posthog_dashboard.engineering: |-
+                    {
+                      "name": "Engineering Metrics"
+                    }
+                posthog_insight.pageviews: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.engineering.id}"
+                      ],
+                      "depends_on": [
+                        "${posthog_dashboard.engineering}"
+                      ],
+                      "name": "Page Views",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"$pageview\", math = \"total\" }]\n    }\n  })}"
+                    }
+                posthog_insight.signups: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.engineering.id}"
+                      ],
+                      "depends_on": [
+                        "${posthog_dashboard.engineering}"
+                      ],
+                      "name": "Sign-ups",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"user_signed_up\", math = \"total\" }]\n    }\n  })}"
+                    }
+        argumentDocs:
+            color: (String) Background color of the tile. Valid values are defined by the PostHog API; see InsightColor in types.ts for the current list.
+            dashboard_id: (Number) PostHog dashboard ID.
+            id: (Number) Resource ID (same value as dashboard_id).
+            insight_id: (Number) ID of the insight to display. Exactly one of insight_id or text_body must be set.
+            layouts_json: '(String) JSON object with breakpoint keys sm and/or xs, each containing position properties: x, y, w, h (required), and optionally minW, minH (e.g. {"sm":{"x":0,"y":0,"w":6,"h":5},"xs":{"x":0,"y":0,"w":1,"h":5}}). Semantic JSON equality is used to suppress phantom diffs.'
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            show_description: (Boolean) Whether to show the insight description on the tile. Omit the field to clear it back to the PostHog API default (null).
+            text_body: (String) Markdown body for a text tile (max 4000 characters). Exactly one of insight_id or text_body must be set.
+            tile_id: (Number) Server-assigned tile ID. Populated after the first apply.
+            tiles: (Attributes List) Ordered list of tiles to manage on the dashboard. (see below for nested schema)
+        importStatements:
+            - |-
+              # Import an existing dashboard layout using project_id/dashboard_id
+              terraform import posthog_dashboard_layout.engineering 12345/67890
+    posthog_early_access_feature:
+        subCategory: ""
+        description: 'A PostHog early access feature: a feature users can opt into from your app''s feature previews list. Each one is backed by a feature flag. Active stages (alpha, beta, and general-availability) add an opt-in gate; other stages remove that gate. general-availability remains opt-in gated: PostHog''s separate, one-time rollout-to-all action is not managed by this resource. Destroying the feature removes the gate but leaves the flag and its rollout rules in place.'
+        name: posthog_early_access_feature
+        title: posthog_early_access_feature Resource - posthog
+        examples:
+            - name: new_editor
+              manifest: |-
+                {
+                  "description": "A faster editor with live collaboration.",
+                  "documentation_url": "https://example.com/docs/new-editor",
+                  "feature_flag_id": "${posthog_feature_flag.new_editor.id}",
+                  "name": "New editor",
+                  "stage": "beta"
+                }
+              references:
+                feature_flag_id: posthog_feature_flag.new_editor.id
+              dependencies:
+                posthog_feature_flag.new_editor: |-
+                    {
+                      "key": "new-editor",
+                      "name": "New editor beta",
+                      "rollout_percentage": 0
+                    }
+        argumentDocs:
+            created_at: (String) Timestamp when the feature was created.
+            description: (String) Description shown to users in the opt-in list.
+            documentation_url: (String) Link to documentation for the feature, shown to users in the opt-in list.
+            feature_flag_id: (Number) ID of the feature flag backing this feature, typically posthog_feature_flag.<name>.id. The flag must not be multivariate or group-based, and must not already back another early access feature, survey, or experiment. When omitted, PostHog creates a flag keyed by the slugified name. That flag is left behind on destroy, so re-creating a feature with the same name fails until you delete it; managing the flag with posthog_feature_flag avoids this. The flag can only be linked on create, so changing it replaces the feature.
+            feature_flag_key: (String) Key of the feature flag backing this feature.
+            id: (String) Early access feature ID (UUID).
+            name: (String) Name shown to users in the opt-in list (at most 200 characters).
+            payload: (String) JSON object metadata for the feature, e.g. jsonencode({ theme = "dark" }). Empty objects are allowed; arrays, scalars, and JSON null are not. Compared semantically, so key ordering and whitespace do not produce a diff.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            stage: '(String) Lifecycle stage: draft, concept, alpha, beta, general-availability, or archived. In alpha, beta, and general-availability, users who opt in get the flag enabled. Changing to general-availability does not roll the flag out to everyone; that is a separate one-time PostHog action. concept lists the feature so users can register interest without enabling anything. Leaving an active stage removes the enrollment gate but retains the flag''s own rollout rules.'
+        importStatements:
+            - |-
+              # Import using: project_id/early_access_feature_id
+              terraform import posthog_early_access_feature.example 12345/01900000-0000-7000-8000-000000000000
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_early_access_feature.example 01900000-0000-7000-8000-000000000000
+    posthog_experiment:
+        subCategory: ""
+        description: Manage PostHog experiments (A/B tests) — definition, metrics, and the draft → running → paused → stopped lifecycle. The backing feature flag is a separate posthog_feature_flag resource referenced by feature_flag_key; the experiment attaches metrics and drives the lifecycle (including shipping a winning variant on stop). Business rules (transition legality, metric schema) are enforced by the PostHog API at apply time, not by the provider.
+        name: posthog_experiment
+        title: posthog_experiment Resource - posthog
+        examples:
+            - name: pricing
+              manifest: |-
+                {
+                  "description": "Does the new pricing layout lift conversion?",
+                  "exposure_criteria": "${jsonencode({ filterTestAccounts = true })}",
+                  "feature_flag_key": "${posthog_feature_flag.pricing.key}",
+                  "metrics": "${jsonencode([\n    {\n      kind        = \"ExperimentMetric\"\n      metric_type = \"mean\"\n      name        = \"Revenue per user\"\n      source      = { kind = \"EventsNode\", event = \"purchase\", math = \"sum\" }\n    }\n  ])}",
+                  "name": "Pricing page test",
+                  "status": [
+                    {
+                      "state": "running"
+                    }
+                  ]
+                }
+              references:
+                feature_flag_key: posthog_feature_flag.pricing.key
+              dependencies:
+                posthog_feature_flag.onboarding: |-
+                    {
+                      "filters": "${jsonencode({\n    multivariate = { variants = [\n      { key = \"control\", rollout_percentage = 50 },\n      { key = \"test\", rollout_percentage = 50 },\n    ] }\n    groups = [{ properties = [], rollout_percentage = 100 }]\n  })}",
+                      "key": "onboarding-checklist",
+                      "lifecycle": [
+                        {
+                          "ignore_changes": [
+                            "${filters}"
+                          ]
+                        }
+                      ]
+                    }
+                posthog_feature_flag.pricing: |-
+                    {
+                      "filters": "${jsonencode({\n    multivariate = { variants = [\n      { key = \"control\", name = \"Original\", rollout_percentage = 50 },\n      { key = \"test\", name = \"Redesign\", rollout_percentage = 50 },\n    ] }\n    groups = [{ properties = [], rollout_percentage = 100 }]\n  })}",
+                      "key": "pricing-page-test"
+                    }
+            - name: onboarding
+              manifest: |-
+                {
+                  "feature_flag_key": "${posthog_feature_flag.onboarding.key}",
+                  "name": "Onboarding checklist",
+                  "status": [
+                    {
+                      "state": "stopped",
+                      "stopped": [
+                        {
+                          "conclusion": "won",
+                          "conclusion_comment": "New checklist lifted activation 8%",
+                          "ship_variant": "test"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              references:
+                feature_flag_key: posthog_feature_flag.onboarding.key
+              dependencies:
+                posthog_feature_flag.onboarding: |-
+                    {
+                      "filters": "${jsonencode({\n    multivariate = { variants = [\n      { key = \"control\", rollout_percentage = 50 },\n      { key = \"test\", rollout_percentage = 50 },\n    ] }\n    groups = [{ properties = [], rollout_percentage = 100 }]\n  })}",
+                      "key": "onboarding-checklist",
+                      "lifecycle": [
+                        {
+                          "ignore_changes": [
+                            "${filters}"
+                          ]
+                        }
+                      ]
+                    }
+                posthog_feature_flag.pricing: |-
+                    {
+                      "filters": "${jsonencode({\n    multivariate = { variants = [\n      { key = \"control\", name = \"Original\", rollout_percentage = 50 },\n      { key = \"test\", name = \"Redesign\", rollout_percentage = 50 },\n    ] }\n    groups = [{ properties = [], rollout_percentage = 100 }]\n  })}",
+                      "key": "pricing-page-test"
+                    }
+        argumentDocs:
+            allow_unknown_events: (Boolean) Opt-in bypass of the API validation that rejects metrics referencing not-yet-ingested events. Sent on every write (so a draft with such a metric can still be launched/edited); config-only, not read back from the API.
+            conclusion: '(String) Conclusion recorded when the experiment is stopped — one of won, lost, inconclusive, stopped_early, invalid. Fully managed: applied at stop time and editable afterwards (an edit on an already-stopped experiment is PATCHed and read back).'
+            conclusion_comment: (String) Free-text note recorded alongside the conclusion. Fully managed (sent on stop/update and read back).
+            description: (String) Experiment description.
+            exposure_criteria: (String) Exposure criteria as a JSON object (this is where filterTestAccounts lives). Same semantic-compare handling as metrics.
+            feature_flag_key: (String) Key of the multivariate feature flag this experiment runs on. Reference a posthog_feature_flag resource — e.g. feature_flag_key = posthog_feature_flag.<name>.key. The flag must already exist and be multivariate (2–20 variants, one keyed control). Changing this forces a new experiment (a linked flag cannot be re-keyed in place).
+            holdout_id: (Number) ID of an existing holdout group to reference. Holdout management itself is out of scope.
+            id: (Number) Experiment ID.
+            metrics: (String) Primary metrics as a JSON array. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Only fields you declare are tracked; server-computed fields (e.g. metric fingerprints) are ignored.
+            metrics_secondary: (String) Secondary metrics as a JSON array. Same semantic-compare handling as metrics.
+            name: (String) Experiment name.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            release_to_everyone: (Boolean) When shipping, prepend a catch-all release condition (roll out to everyone) instead of only flipping the variant distribution. Defaults to false. Config-only.
+            ship_variant: (String) Key of the winning variant to ship. Rewrites the linked flag's distribution so this variant gets 100% and ends the experiment. If the flag is managed by a posthog_feature_flag resource, set lifecycle { ignore_changes = [filters] } on it so it does not revert the shipped distribution. Config-only; re-ships only when this value changes; clearing it does not un-ship.
+            state: (String) Desired lifecycle state — one of draft, running, paused, or stopped (required; use draft for a not-yet-launched experiment). The lifecycle is forward-only.
+            status: '(Block, Optional) Desired lifecycle state. The status block and its state are required (the block is schema-optional only because Terraform has no required-block modifier; a plan without it errors). Declare it to drive the experiment through draft → running → paused → stopped; the provider maps the desired state (vs. the current state) to the matching launch/pause/resume/end/ship sub-action. The lifecycle is forward-only — backward transitions error. Note: a transition spanning two sub-actions in one apply (e.g. creating directly as paused = launch+pause, or stopped = launch+end) is not atomic — if the second action fails the experiment is left mid-transition; the error names its live state so you can reconcile. The server-only exposure_frozen state cannot be managed here; resume or end such an experiment in the PostHog UI first. (see below for nested schema)'
+            stopped: (Block, Optional) Metadata applied when stopping the experiment (read only when state = "stopped", ignored otherwise). (see below for nested schema)
+        importStatements:
+            - |-
+              # Import using: project_id/experiment_id
+              terraform import posthog_experiment.pricing 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_experiment.pricing 678
+    posthog_external_data_source:
+        subCategory: ""
+        description: 'PostHog external data warehouse source (e.g. Stripe, Hubspot, Postgres, MySQL, MSSQL, Snowflake, BigQuery, Salesforce, Zendesk, Vitally, Chargebee). source_type, prefix, and schemas are immutable: changes trigger replacement. Sync cadence is managed by PostHog (per-schema) and is not configurable on this resource.'
+        name: posthog_external_data_source
+        title: posthog_external_data_source Resource - posthog
+        examples:
+            - name: stripe
+              manifest: |-
+                {
+                  "job_inputs_json": "${jsonencode({\n    stripe_account_id = \"acct_123\"\n    stripe_secret_key = var.stripe_secret_key\n  })}",
+                  "prefix": "stripe_",
+                  "schemas": [
+                    "charges",
+                    "customers",
+                    "invoices"
+                  ],
+                  "source_type": "Stripe"
+                }
+            - name: prod_pg
+              manifest: |-
+                {
+                  "job_inputs_json": "${jsonencode({\n    host     = \"db.internal\"\n    port     = 5432\n    database = \"app\"\n    user     = \"readonly\"\n    password = var.pg_password\n    schema   = \"public\"\n  })}",
+                  "schemas": [
+                    "users",
+                    "orders"
+                  ],
+                  "source_type": "Postgres"
+                }
+        argumentDocs:
+            created_at: (String) Timestamp when the source was created.
+            id: (String) External data source ID (UUID).
+            job_inputs_json: (String, Sensitive) JSON-encoded connection configuration for the source. Shape depends on source_type. For example Postgres expects {host, port, database, user, password, schema}; Stripe expects {stripe_account_id, stripe_secret_key}. PostHog redacts secret values when reading, so the plan value is preserved in state. On import, redacted secrets will appear in state until the next apply with real values.
+            last_run_at: (String) Timestamp of the most recent sync run.
+            prefix: (String) Optional prefix for synced table names (e.g. stripe_prod_). Useful when connecting multiple sources of the same type. The PostHog update endpoint silently ignores prefix changes for non-direct-postgres sources, so this resource treats it as RequiresReplace.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            schemas: (List of String) List of table names to sync from the source (e.g. ["users", "orders"]). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+            source_type: (String) Source type recognised by the PostHog data warehouse (e.g. Stripe, Postgres, Snowflake, BigQuery, Hubspot). PostHog defines the set of accepted values and may add new types over time; see the PostHog data warehouse docs for the current list. Cannot be changed after creation.
+            status: (String) Current status reported by PostHog (e.g. Running, Completed, Error).
+            sync_frequency: (String) Sync cadence reported by PostHog. Defaults to 6 hours (5 minutes for CDC schemas) and is not configurable on this resource — the create endpoint does not accept a sync frequency. Reports the value of the first schema; sources with mixed schedules will see this flap. Modify per-schema cadence via the PostHog UI or schemas API.
+        importStatements:
+            - |-
+              # Import using: project_id/external_data_source_id
+              terraform import posthog_external_data_source.example 12345/01900000-0000-7000-8000-000000000000
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_external_data_source.example 01900000-0000-7000-8000-000000000000
+    posthog_feature_flag Resource - posthog:
+        subCategory: ""
+        description: PostHog Feature Flag resource
+        name: posthog_feature_flag Resource - posthog
+        title: posthog_feature_flag Resource - posthog
+        argumentDocs:
+            active: (Boolean) Whether the feature flag is active
+            create_usage_dashboard: (Boolean, Deprecated) Deprecated create-time option. PostHog no longer creates a saved usage dashboard when a flag is created, so true is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
+            deleted: (Boolean) Whether the feature flag is soft-deleted. Terraform will restore soft-deleted flags on apply.
+            ensure_experience_continuity: (Boolean) Whether to persist the flag across authentication steps (PostHog's UI labels this as 'Persist flag across authentication steps'). Flags with experience continuity enabled cannot be evaluated by server-side local evaluation; set this to false for flags that must be evaluated locally.
+            filters: (String) Feature flag filters as JSON. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Fields present in the API response but absent from this config are kept in state so remote changes surface as drift — except the top-level keys listed in ignore_filter_fields and an undeclared feature_enrollment marker owned by Early Access Features.
+            id: (Number) Feature Flag ID
+            ignore_filter_fields: '(Set of String) Top-level keys inside filters that Terraform does not track for drift (state mirrors config for them, so changes made outside Terraform don''t show as a diff). When unset, defaults to the keys other PostHog products wire into a flag — ["feature_enrollment", "super_groups", "holdout_groups", "holdout"] (Early Access Features and Experiments). Set to [] to track other filter keys, including Experiment wiring, or provide your own set to replace the default. feature_enrollment is always ignored when absent from filters: PostHog owns this marker while an Early Access Feature is linked and preserves it on flag updates, so Terraform cannot clear it by omission. A key you also declare inside filters is always tracked (explicit config wins over the ignore list).'
+            key: (String) Feature flag key (unique identifier)
+            name: (String) Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            rollout_percentage: (Number) Rollout percentage (0-100)
+            tags: (Set of String) Set of tags for the feature flag
+        importStatements:
+            - |-
+              # Import using: project_id/feature_flag_id
+              terraform import posthog_feature_flag.example 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_feature_flag.example 678
+    posthog_hog_function Resource - posthog:
+        subCategory: ""
+        description: Manage PostHog Hog functions. Hog functions enable destinations, webhooks, and transformations triggered by events or alerts.
+        name: posthog_hog_function Resource - posthog
+        title: posthog_hog_function Resource - posthog
+        argumentDocs:
+            description: (String) Description of the Hog function.
+            enabled: (Boolean) Whether the Hog function is enabled. Defaults to true.
+            execution_order: (Number) Order in which this Hog function executes relative to others (0-32767).
+            filters_json: (String) JSON object defining filters for when the Hog function should execute. Includes events, actions, properties, and filter_test_accounts options.
+            hog: (String) The Hog code to execute. Not required when using a template - the template provides the code.
+            icon_url: (String) URL of the icon for this Hog function.
+            id: (String) UUID of the Hog function.
+            inputs_json: (String) JSON object containing the input values for the Hog function. Keys correspond to the input schema, values contain value and optional templating properties. For inputs containing secrets, use sensitive_inputs_json instead.
+            inputs_schema_json: (String) JSON array defining custom input schema entries for the Hog function. Each entry is an object with key, type, secret, required, and other properties. Sent directly as inputs_schema in the API request. When using a template, this replaces the template's default schema.
+            mappings_json: (String) JSON array of mapping configurations. Each mapping can have its own name, inputs_schema, inputs, and filters.
+            masking_json: (String) JSON object configuring PII masking for the Hog function. Includes ttl, threshold, and hash properties.
+            name: (String) Name of the Hog function.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            sensitive_inputs_json: (String, Sensitive) JSON object containing sensitive input values (e.g. API keys, tokens, credentials) for the Hog function. Same format as inputs_json. Values are merged with inputs_json at apply time and redacted from plan/apply output. If the same key appears in both, sensitive_inputs_json takes precedence.
+            template_id: (String) ID of a template to use as the basis for this Hog function. The template provides default code, inputs schema, and configuration.
+            type: '(String) Type of Hog function: destination, site_destination, internal_destination, source_webhook, site_app, or transformation.'
+        importStatements:
+            - |-
+              # Import using: project_id/hog_function_uuid
+              terraform import posthog_hog_function.example 12345/your-hog-function-uuid
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_hog_function.example your-hog-function-uuid
+    posthog_insight:
+        subCategory: ""
+        description: Manage PostHog insights via the insights endpoints.
+        name: posthog_insight
+        title: posthog_insight Resource - posthog
+        examples:
+            - name: active_users
+              manifest: |-
+                {
+                  "description": "Daily active users over the past week",
+                  "name": "Active users (last 7 days)",
+                  "query_sql": "${file(\"${path.module}/queries/active_users.sql\")}"
+                }
+            - name: event_count
+              manifest: |-
+                {
+                  "name": "Total events",
+                  "query_sql": "SELECT count()\nFROM events\nWHERE timestamp \u003e= now() - INTERVAL 7 DAY\n"
+                }
+            - name: pageviews_trend
+              manifest: |-
+                {
+                  "name": "Pageviews trend",
+                  "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind = \"TrendsQuery\"\n      series = [{\n        kind  = \"EventsNode\"\n        event = \"$pageview\"\n        math  = \"total\"\n      }]\n    }\n  })}"
+                }
+        argumentDocs:
+            create_in_folder: (String) Folder identifier used only during insight creation.
+            dashboard_ids: (Set of Number) List of dashboard ids which should contain the insight.
+            deleted: (Boolean) Whether the insight is deleted (soft delete)
+            derived_name: (String) Insight derived name. This is auto-generated by PostHog when the name is not set.
+            description: (String) Insight description.
+            id: (Number) Numeric ID of the insight.
+            name: (String) Insight name.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            query_json: (String) Raw JSON serialized query payload accepted by PostHog (for example an InsightVizNode with a TrendsQuery). Mutually exclusive with query_sql; exactly one must be set.
+            query_sql: (String) Raw HogQL SQL for the insight (for example SELECT count() FROM events). The provider wraps it in a DataVisualizationNode/HogQLQuery query. Use file("queries/x.sql") to load from a .sql file. Mutually exclusive with query_json; exactly one must be set. For chart or column display options, use query_json instead.
+            short_id: (String) Short ID of the insight (the value shown in the insight's URL). Use this with the posthog_insight data source to look up the insight.
+            tags: (Set of String) List of tags to apply to the insight.
+        importStatements:
+            - |-
+              # Import using: project_id/insight_id
+              terraform import posthog_insight.example 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_insight.example 678
+    posthog_insight_variable:
+        subCategory: ""
+        description: Manage PostHog SQL variables (also called insight variables). A HogQL query references a variable as {variables.code_name}, and every dashboard holding an insight that uses it renders an input for the value.
+        name: posthog_insight_variable
+        title: posthog_insight_variable Resource - posthog
+        examples:
+            - name: lookup
+              manifest: |-
+                {
+                  "name": "Lookup",
+                  "type": "String"
+                }
+              dependencies:
+                posthog_insight.events_by_environment: |-
+                    {
+                      "name": "Events by environment",
+                      "query_json": "${jsonencode({\n    kind = \"DataVisualizationNode\"\n    source = {\n      kind  = \"HogQLQuery\"\n      query = \"SELECT count() FROM events WHERE timestamp \u003e= now() - INTERVAL 1 DAY AND properties.environment = {variables.environment}\"\n      variables = {\n        (posthog_insight_variable.environment.id) = {\n          code_name  = posthog_insight_variable.environment.code_name\n          variableId = posthog_insight_variable.environment.id\n          value      = \"prod\"\n        }\n      }\n    }\n  })}"
+                    }
+            - name: environment
+              manifest: |-
+                {
+                  "default_value_json": "${jsonencode(\"prod\")}",
+                  "name": "Environment",
+                  "type": "String"
+                }
+              dependencies:
+                posthog_insight.events_by_environment: |-
+                    {
+                      "name": "Events by environment",
+                      "query_json": "${jsonencode({\n    kind = \"DataVisualizationNode\"\n    source = {\n      kind  = \"HogQLQuery\"\n      query = \"SELECT count() FROM events WHERE timestamp \u003e= now() - INTERVAL 1 DAY AND properties.environment = {variables.environment}\"\n      variables = {\n        (posthog_insight_variable.environment.id) = {\n          code_name  = posthog_insight_variable.environment.code_name\n          variableId = posthog_insight_variable.environment.id\n          value      = \"prod\"\n        }\n      }\n    }\n  })}"
+                    }
+            - name: lookback_days
+              manifest: |-
+                {
+                  "default_value_json": "${jsonencode(30)}",
+                  "name": "Lookback days",
+                  "type": "Number"
+                }
+              dependencies:
+                posthog_insight.events_by_environment: |-
+                    {
+                      "name": "Events by environment",
+                      "query_json": "${jsonencode({\n    kind = \"DataVisualizationNode\"\n    source = {\n      kind  = \"HogQLQuery\"\n      query = \"SELECT count() FROM events WHERE timestamp \u003e= now() - INTERVAL 1 DAY AND properties.environment = {variables.environment}\"\n      variables = {\n        (posthog_insight_variable.environment.id) = {\n          code_name  = posthog_insight_variable.environment.code_name\n          variableId = posthog_insight_variable.environment.id\n          value      = \"prod\"\n        }\n      }\n    }\n  })}"
+                    }
+            - name: region
+              manifest: |-
+                {
+                  "default_value_json": "${jsonencode(\"us\")}",
+                  "name": "Region",
+                  "type": "List",
+                  "values_json": "${jsonencode([\"us\", \"eu\"])}"
+                }
+              dependencies:
+                posthog_insight.events_by_environment: |-
+                    {
+                      "name": "Events by environment",
+                      "query_json": "${jsonencode({\n    kind = \"DataVisualizationNode\"\n    source = {\n      kind  = \"HogQLQuery\"\n      query = \"SELECT count() FROM events WHERE timestamp \u003e= now() - INTERVAL 1 DAY AND properties.environment = {variables.environment}\"\n      variables = {\n        (posthog_insight_variable.environment.id) = {\n          code_name  = posthog_insight_variable.environment.code_name\n          variableId = posthog_insight_variable.environment.id\n          value      = \"prod\"\n        }\n      }\n    }\n  })}"
+                    }
+        argumentDocs:
+            code_name: (String) Code-safe name generated from name, referenced in HogQL as {variables.code_name}. PostHog derives it once at creation and keeps it if you later rename the variable, so queries do not break on a rename. It must be unique within the project.
+            created_at: (String) Timestamp when the SQL variable was created.
+            default_value_json: '(String) JSON-encoded default value used when a query references the variable and no value is supplied. The value is a bare JSON scalar for most types, so wrap it: jsonencode("prod"), jsonencode(30), jsonencode(true). For List variables PostHog stores the default as a string, so encode it as one.'
+            id: (String) UUID of the SQL variable. Insight queries key their variables map on this value.
+            name: (String) Human-readable name for the SQL variable, shown above the input.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            type: '(String) Variable type, which controls how the value is rendered and substituted into HogQL: String, Number, Boolean, List, or Date.'
+            values_json: '(String) JSON-encoded array of allowed values, for List variables only. PostHog stores every entry as a string, so encode them as strings: jsonencode(["1", "2"]) rather than jsonencode([1, 2]). Otherwise the value PostHog returns will not match your configuration. Leave unset for other variable types.'
+        importStatements:
+            - |-
+              # Import using: project_id/insight_variable_id
+              terraform import posthog_insight_variable.example 12345/019fae99-842f-0000-f983-cc2171e27686
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_insight_variable.example 019fae99-842f-0000-f983-cc2171e27686
+    posthog_logs_alert:
+        subCategory: ""
+        description: 'Manage PostHog log alerts https://posthog.com/docs/logs/alerts. A log alert periodically counts the log entries matching its filters over a rolling window and fires when that count crosses the threshold. At least one of severity_levels, service_names, or filter_group_json is required unless the alert is disabled (enabled = false). A project may hold at most 20 log alerts. ~> An alert with no destination notifies nobody. It still evaluates and reports its state, but nothing is sent anywhere. Attach Slack, webhook or Microsoft Teams destinations with posthog_logs_alert_destination. PostHog builds each destination as a hog function internally, but you cannot create one yourself with posthog_hog_function: the API refuses any hog function filtering on a managed alert event with Alert notification destinations are managed through the alert API. Insight alerts are the one exception, since $insight_alert_firing predates the managed API; see examples/alert-notifications/main.tf for that chain. Replacing the alert, notably by changing project_id, creates a new alert with no destinations attached, and replaces every posthog_logs_alert_destination that points at it. Removing severity_levels, service_names, filter_group_json, or blocked_windows from your configuration clears them server-side. The remaining optional attributes are computed, so removing one retains its last applied value rather than restoring the documented default. Set it explicitly to change it back. Drift works the same way. Terraform corrects a PostHog UI edit to an attribute you declared, but silently adopts one to a computed attribute you left out.'
+        name: posthog_logs_alert
+        title: posthog_logs_alert Resource - posthog
+        examples:
+            - name: checkout_errors
+              manifest: |-
+                {
+                  "blocked_windows": [
+                    {
+                      "end": "06:00",
+                      "start": "22:00"
+                    }
+                  ],
+                  "cooldown_minutes": 30,
+                  "datapoints_to_alarm": 2,
+                  "evaluation_periods": 3,
+                  "name": "Checkout API errors",
+                  "service_names": [
+                    "checkout-api"
+                  ],
+                  "severity_levels": [
+                    "error",
+                    "fatal"
+                  ],
+                  "threshold_count": 10,
+                  "threshold_operator": "above",
+                  "window_minutes": 10
+                }
+              dependencies:
+                posthog_logs_alert_destination.checkout_errors_oncall: |-
+                    {
+                      "alert_id": "${posthog_logs_alert.checkout_errors.id}",
+                      "type": "webhook",
+                      "webhook_url": "https://example.com/hooks/oncall"
+                    }
+            - name: server_errors
+              manifest: |-
+                {
+                  "filter_group_json": "${jsonencode({\n    type = \"AND\"\n    values = [{\n      type = \"AND\"\n      values = [{\n        type     = \"log_attribute\"\n        key      = \"status_code\"\n        operator = \"exact\"\n        value    = [\"500\", \"502\", \"503\"]\n      }]\n    }]\n  })}",
+                  "name": "5xx responses",
+                  "threshold_count": 50,
+                  "window_minutes": 15
+                }
+              dependencies:
+                posthog_logs_alert_destination.checkout_errors_oncall: |-
+                    {
+                      "alert_id": "${posthog_logs_alert.checkout_errors.id}",
+                      "type": "webhook",
+                      "webhook_url": "https://example.com/hooks/oncall"
+                    }
+            - name: draft
+              manifest: |-
+                {
+                  "enabled": false,
+                  "name": "Work in progress"
+                }
+              dependencies:
+                posthog_logs_alert_destination.checkout_errors_oncall: |-
+                    {
+                      "alert_id": "${posthog_logs_alert.checkout_errors.id}",
+                      "type": "webhook",
+                      "webhook_url": "https://example.com/hooks/oncall"
+                    }
+        argumentDocs:
+            blocked_windows: '(Attributes Set) Quiet hours: time windows during which the alert is not evaluated. Times use the project timezone. Windows must not overlap or touch each other. A window may cross midnight (for example 22:00 to 06:00), but only as the sole window, because PostHog stores a crossing window as two windows when anything else is configured. PostHog enforces its own limits on window length and count, and reports them on apply. Omit the attribute, or set it to an empty list, to disable quiet hours. (see below for nested schema)'
+            blocked_windows.end: (String) End time as HH:MM (24-hour, project timezone). Exclusive.
+            blocked_windows.start: (String) Start time as HH:MM (24-hour, project timezone). Inclusive.
+            cooldown_minutes: (Number) Minimum minutes between repeated notifications after the alert fires. Defaults to 0, meaning no cooldown.
+            datapoints_to_alarm: (Number) How many of the evaluation_periods most recent check periods must breach the threshold before the alert fires. Must be between 1 and 10 and must not exceed evaluation_periods. Defaults to 1.
+            enabled: (Boolean) Whether the alert is actively evaluated. Defaults to true. Disabling resets the alert state to not_firing.
+            evaluation_periods: (Number) How many of the most recent check periods to consider. PostHog checks a log alert every 5 minutes, so 3 periods covers the last 15 minutes. Must be between 1 and 10. Defaults to 1.
+            filter_group_json: '(String) Attribute-level filters as JSON, matching the filters.filterGroup object of the logs alerts API. Use this for anything beyond severity and service, such as filtering on a log attribute. Must be a non-empty JSON object. Only the fields you declare are tracked: PostHog annotates saved filters with defaults (such as label) that would otherwise surface as permanent drift. The flip side is that a field you omit is not tracked either. If someone edits it in the PostHog UI Terraform will not detect the drift, so declare every field you care about. An imported alert adopts PostHog''s stored filter group verbatim, so the first plan after an import may show one diff that clears on apply.'
+            id: (String) UUID of the log alert.
+            name: '(String) Human-readable name for the alert. PostHog defaults this to Untitled alert when omitted, so this attribute is computed: leaving it out adopts the server''s default rather than producing a diff.'
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            service_names: (Set of String) Service names to scope the alert to.
+            severity_levels: '(Set of String) Log severity levels to count: trace, debug, info, warn, error, or fatal.'
+            snooze_until: (String) RFC 3339 timestamp until which the alert is silenced, for example 2026-01-31T09:00:00Z. Useful for planned work when you want a window of silence in version control rather than in someone's memory.
+            state: '(String) Current evaluation state of the alert, as PostHog reports it: not_firing, firing, pending_resolve, errored, snoozed or broken. A broken alert has stopped evaluating after repeated failed checks and notifies nobody; clearing that is a PostHog UI action, so the provider warns about it on refresh rather than managing it.'
+            threshold_count: (Number) Log entry count to compare against. The alert fires when the number of matching entries in the window is above (or below) this value. Defaults to 100. Use 0 with above to fire on any matching log.
+            threshold_operator: (String) Whether the alert fires when the count is above or below the threshold. Defaults to above.
+            window_minutes: '(Number) Time window in minutes over which log entries are counted: 5, 10, 15, 30, or 60. Defaults to 5.'
+        importStatements:
+            - |-
+              # Import using: project_id/logs_alert_uuid
+              terraform import posthog_logs_alert.example 12345/your-logs-alert-uuid
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_logs_alert.example your-logs-alert-uuid
+    posthog_logs_alert_destination:
+        subCategory: ""
+        description: 'Manage where a log alert https://posthog.com/docs/logs/alerts sends its notifications. A posthog_logs_alert with no destination still evaluates and reports its state, but notifies nobody. ~> Every attribute forces replacement. PostHog has no update endpoint for destinations, so changing a channel or a URL destroys the destination and creates a new one. There is a short window during the apply where the alert has no destination and would notify nobody if it fired. Each resource represents one user-visible destination. PostHog implements that destination as a group of hog functions, one per alert transition (firing, resolved, errored, auto-disabled), sharing the configuration below. The group has no id of its own, so this resource''s id is the group''s hog_function_ids, sorted and joined by commas. Those hog functions are owned by the alert: posthog_hog_function cannot create, update, or delete them. Terraform creates and deletes each managed group through the alert''s destinations API, and reads it back from the alert itself.'
+        name: posthog_logs_alert_destination
+        title: posthog_logs_alert_destination Resource - posthog
+        examples:
+            - name: checkout_errors_slack
+              manifest: |-
+                {
+                  "alert_id": "${posthog_logs_alert.checkout_errors.id}",
+                  "slack_channel_id": "C0123456789",
+                  "slack_channel_name": "#checkout-alerts",
+                  "slack_workspace_id": 1,
+                  "type": "slack"
+                }
+              references:
+                alert_id: posthog_logs_alert.checkout_errors.id
+              dependencies:
+                posthog_logs_alert.checkout_errors: |-
+                    {
+                      "name": "Checkout API errors",
+                      "service_names": [
+                        "checkout-api"
+                      ],
+                      "severity_levels": [
+                        "error",
+                        "fatal"
+                      ],
+                      "threshold_count": 10,
+                      "window_minutes": 10
+                    }
+            - name: checkout_errors_oncall
+              manifest: |-
+                {
+                  "alert_id": "${posthog_logs_alert.checkout_errors.id}",
+                  "type": "webhook",
+                  "webhook_url": "https://example.com/hooks/oncall"
+                }
+              references:
+                alert_id: posthog_logs_alert.checkout_errors.id
+              dependencies:
+                posthog_logs_alert.checkout_errors: |-
+                    {
+                      "name": "Checkout API errors",
+                      "service_names": [
+                        "checkout-api"
+                      ],
+                      "severity_levels": [
+                        "error",
+                        "fatal"
+                      ],
+                      "threshold_count": 10,
+                      "window_minutes": 10
+                    }
+            - name: checkout_errors_teams
+              manifest: |-
+                {
+                  "alert_id": "${posthog_logs_alert.checkout_errors.id}",
+                  "type": "teams",
+                  "webhook_url": "https://example.webhook.office.com/webhookb2/00000000-0000-0000-0000-000000000000"
+                }
+              references:
+                alert_id: posthog_logs_alert.checkout_errors.id
+              dependencies:
+                posthog_logs_alert.checkout_errors: |-
+                    {
+                      "name": "Checkout API errors",
+                      "service_names": [
+                        "checkout-api"
+                      ],
+                      "severity_levels": [
+                        "error",
+                        "fatal"
+                      ],
+                      "threshold_count": 10,
+                      "window_minutes": 10
+                    }
+        argumentDocs:
+            alert_id: (String) UUID of the posthog_logs_alert this destination notifies for.
+            hog_function_ids: (Set of String) UUIDs of the hog functions PostHog built for this destination, one per alert transition. Useful for finding the destination in the PostHog UI.
+            id: (String) The destination's hog_function_ids, sorted and joined by commas. PostHog gives a destination no id of its own.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            slack_channel_id: (String) Slack channel ID to post into, such as C0123456789. Required when type is slack. The channel ID rather than the name, because renaming a channel in Slack must not silently repoint the alert.
+            slack_channel_name: '(String) Channel name such as #alerts, used only to label the destination in the PostHog UI. Optional, and only meaningful when type is slack.'
+            slack_workspace_id: (Number) ID of the Slack integration to post through, as created by connecting Slack to the project in the PostHog UI. Required when type is slack.
+            type: (String) Where the notification goes. PostHog supports slack, webhook, and teams (Microsoft Teams); see the alert destinations API for the current list. A slack destination needs slack_workspace_id and slack_channel_id; webhook and teams need webhook_url. Any other value is sent to PostHog as given, so a destination type added to the API works without a new provider release. Terraform cannot check the settings a type it does not know requires, so PostHog reports those at apply.
+            webhook_url: '(String, Sensitive) URL to POST the notification to. Required when type is webhook or teams. For teams, this is the Microsoft Teams incoming webhook URL. Marked sensitive because the secret is in the URL: whoever holds it can post to the channel.'
+        importStatements:
+            - |-
+              # Import using: project_id/alert_id/hog_function_id
+              #
+              # A destination has no ID of its own: PostHog builds it as a group of hog functions, one per
+              # alert transition. Name any one of them and Terraform adopts the whole group. List them
+              # in the PostHog UI or through the project's generic Hog Functions list API.
+              terraform import posthog_logs_alert_destination.example 12345/your-logs-alert-uuid/your-hog-function-uuid
+
+              # slack_channel_name is write-only, so an imported Slack destination has it unset. Add it to
+              # your configuration to name the destination in the PostHog UI, which replaces it.
+
+              # PostHog redacts webhook_url on read, so imported webhook and teams destinations have it
+              # unset. Add the real URL to configuration after import; the first plan replaces the destination.
+    posthog_organization_member:
+        subCategory: ""
+        description: 'Manages a user''s membership in a PostHog organization. ~> Warning: By default, destroying this resource will remove the user from the organization entirely. Set retain_on_destroy = true to keep the user in the organization when the resource is destroyed. Users must already be members of the organization (e.g., via invite) before this resource can manage them.'
+        name: posthog_organization_member
+        title: posthog_organization_member Resource - posthog
+        examples:
+            - name: alice
+              manifest: |-
+                {
+                  "level": "admin",
+                  "organization_id": "your-organization-uuid",
+                  "retain_on_destroy": true,
+                  "user_uuid": "${data.posthog_user.alice.uuid}"
+                }
+              references:
+                user_uuid: data.posthog_user.alice.uuid
+        argumentDocs:
+            email: (String) The email address of the user.
+            first_name: (String) The first name of the user.
+            id: (String) The member ID.
+            is_2fa_enabled: (Boolean) Whether two-factor authentication is enabled for the user.
+            joined_at: (String) Timestamp when the user joined the organization.
+            last_name: (String) The last name of the user.
+            level: (String) The access level for the member. Valid values are 'member', 'admin', or 'owner'. Defaults to 'member'.
+            organization_id: (String) Organization for this resource. Overrides the provider-level organization_id. Accepts an organization UUID, an organization slug, or the literal @current (the authenticated user's organization); slugs and @current are resolved to a UUID for API calls while your original value is preserved in state.
+            retain_on_destroy: (Boolean) If true, the user will remain in the organization when this resource is destroyed. Defaults to false.
+            user_uuid: (String) The UUID of the user. Use the posthog_user data source to look up users by email.
+        importStatements:
+            - |-
+              # Import an organization member using the format: organization_id/user_uuid
+              terraform import posthog_organization_member.alice your-organization-uuid/user-uuid
+    posthog_project Resource - posthog:
+        subCategory: ""
+        description: Manages a PostHog project within an organization.
+        name: posthog_project Resource - posthog
+        title: posthog_project Resource - posthog
+        argumentDocs:
+            api_token: (String, Sensitive) The API token for this project. This is used to send events to PostHog.
+            id: (Number) The numeric identifier of the project.
+            name: (String) The name of the project.
+            organization_id: (String) Organization for this resource. Overrides the provider-level organization_id. Accepts an organization UUID, an organization slug, or the literal @current (the authenticated user's organization); slugs and @current are resolved to a UUID for API calls while your original value is preserved in state.
+            timezone: (String) The timezone for this project (e.g., 'UTC', 'America/New_York', 'Europe/London'). Defaults to 'UTC'.
+        importStatements:
+            - |-
+              # Import using: organization_id/project_id
+              # Note: organization_id is always required (no provider-level default fallback).
+              terraform import posthog_project.example your-organization-uuid/123
+    posthog_project_default_access:
+        subCategory: ""
+        description: 'Sets the default access level for a PostHog project. This determines the baseline access level for all organization members who don''t have explicit access granted via roles or direct membership. ~> Note: There is only one default access level per project. This resource is a singleton - creating multiple instances for the same project will cause conflicts. ~> Destroy Behavior: Destroying this resource resets the default access level to none (most restrictive). It does not restore the previous value. ~> Enterprise Feature: Role-based access control (RBAC) requires a PostHog Enterprise plan. See Access Control documentation https://posthog.com/docs/settings/access-control for more details.'
+        name: posthog_project_default_access
+        title: posthog_project_default_access Resource - posthog
+        examples:
+            - name: restrictive
+              manifest: |-
+                {
+                  "access_level": "none",
+                  "project_id": "your-project-id"
+                }
+            - name: default
+              manifest: |-
+                {
+                  "access_level": "member"
+                }
+        argumentDocs:
+            access_level: (String) The default access level for the project. Valid values are none, member, or admin.
+            id: (String) The project ID (used as the resource identifier).
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+        importStatements:
+            - |-
+              # Import using the project_id
+              terraform import posthog_project_default_access.example your-project-id
+    posthog_project_member:
+        subCategory: ""
+        description: 'Manages a role or organization member''s access to a PostHog project. This resource grants a specific role or organization member access to a project with a defined access level. ~> Note: You must specify either role or organization_member, but not both. ~> Enterprise Feature: Role-based access control (RBAC) requires a PostHog Enterprise plan. See Access Control documentation https://posthog.com/docs/settings/access-control for more details.'
+        name: posthog_project_member
+        title: posthog_project_member Resource - posthog
+        examples:
+            - name: engineering_team
+              manifest: |-
+                {
+                  "access_level": "member",
+                  "project_id": "your-project-id",
+                  "role": "${posthog_role.engineering.id}"
+                }
+              references:
+                role: posthog_role.engineering.id
+            - name: team_leads
+              manifest: |-
+                {
+                  "access_level": "admin",
+                  "project_id": "your-project-id",
+                  "role": "${posthog_role.team_leads.id}"
+                }
+              references:
+                role: posthog_role.team_leads.id
+            - name: alice
+              manifest: |-
+                {
+                  "access_level": "admin",
+                  "organization_member": "${posthog_organization_member.alice.id}",
+                  "project_id": "your-project-id"
+                }
+              references:
+                organization_member: posthog_organization_member.alice.id
+        argumentDocs:
+            access_level: (String) The access level to grant. Valid values are none, member, or admin.
+            created_at: (String) Timestamp when the access was created.
+            id: (String) Composite identifier for the project member access.
+            organization_member: (String) The UUID of the organization member to grant project access to. Mutually exclusive with role.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            role: (String) The UUID of the role to grant project access to. Mutually exclusive with organization_member.
+            updated_at: (String) Timestamp when the access was last updated.
+        importStatements:
+            - |-
+              # Import a role's project access using: project_id/role/<role_id>
+              terraform import posthog_project_member.engineering_team your-project-id/role/your-role-uuid
+
+              # Import an organization member's project access using: project_id/member/<member_id>
+              terraform import posthog_project_member.alice your-project-id/member/your-member-uuid
+    posthog_project_settings:
+        subCategory: ""
+        description: 'Manages environment-level settings for a PostHog project (environment). These settings live on the PostHog environment object (/api/environments/{id}/), which is distinct from the organization-scoped posthog_project resource. Each setting is optional - omitted attributes are left at whatever value PostHog currently has, and PostHog''s server-side default is read back into state. ~> Singleton: There is only one settings object per project. This resource is a singleton - creating multiple instances for the same project will cause conflicts. ~> Destroy Behavior: Destroying this resource is a no-op. It stops Terraform from managing the settings but does not reset any values on PostHog; the last-applied settings remain in effect. ~> Plan-gated settings: If PostHog accepts the update but silently ignores a setting (for example a feature that is not enabled for your plan), Terraform reports a generic "Provider produced inconsistent result after apply" error. The provider also emits a warning naming the specific attribute(s) PostHog did not apply, so you can tell which setting is unavailable for your project rather than a provider bug. ~> Domains: app_urls is the project''s authorized-domains list — shown in PostHog settings as Web analytics domains and reused as the toolbar''s Authorized URLs (web analytics has no separate allowlist of its own). recording_domains is the session-replay domains list.'
+        name: posthog_project_settings
+        title: posthog_project_settings Resource - posthog
+        examples:
+            - name: example
+              manifest: |-
+                {
+                  "anonymize_ips": false,
+                  "app_urls": [
+                    "https://app.example.com",
+                    "https://www.example.com"
+                  ],
+                  "autocapture_exceptions_opt_in": true,
+                  "autocapture_web_vitals_opt_in": false,
+                  "capture_performance_opt_in": true,
+                  "cookieless_server_hash_mode": 0,
+                  "heatmaps_opt_in": true,
+                  "project_id": "your-project-id",
+                  "recording_domains": [
+                    "https://app.example.com"
+                  ],
+                  "session_recording_network_payload_capture_config": {
+                    "record_body": false,
+                    "record_headers": true
+                  },
+                  "session_recording_opt_in": true,
+                  "surveys_opt_in": true,
+                  "test_account_filters": "${jsonencode([\n    {\n      key      = \"id\"\n      type     = \"cohort\"\n      value    = posthog_cohort.internal.id\n      operator = \"in\"\n    }\n  ])}",
+                  "test_account_filters_default_checked": true
+                }
+              dependencies:
+                posthog_cohort.internal: |-
+                    {
+                      "name": "Internal users"
+                    }
+            - name: minimal
+              manifest: |-
+                {
+                  "session_recording_opt_in": true
+                }
+              dependencies:
+                posthog_cohort.internal: |-
+                    {
+                      "name": "Internal users"
+                    }
+        argumentDocs:
+            anonymize_ips: (Boolean) Whether to discard the client IP address at ingestion (shown in PostHog as Discard client IP data). Enabling this degrades IP-based event matching for destinations that rely on it (for example Meta Conversions API), since $ip is never stored.
+            app_urls: (List of String) The project's authorized domains — shown in PostHog settings as Web analytics domains (and used as the toolbar's Authorized URLs). These are the domains tracked in web analytics and where the toolbar is enabled. Maps to the team app_urls field. Wildcards are not allowed; order is preserved.
+            autocapture_exceptions_opt_in: (Boolean) Whether exception autocapture is enabled.
+            autocapture_web_vitals_opt_in: (Boolean) Whether web vitals autocapture is enabled.
+            capture_performance_opt_in: (Boolean) Whether network performance capture is enabled for session replay. This must be true for session_recording_network_payload_capture_config to have any effect — without it, session replay does not capture network requests at all.
+            cookieless_server_hash_mode: '(Number) The cookieless server hash mode. Known values: 0 (disabled), 1 (stateless), 2 (stateful) — matching PostHog''s CookielessServerHashMode enum. PostHog may add modes over time, so any non-negative value is accepted rather than a fixed set; consult the PostHog docs for the current options.'
+            heatmaps_opt_in: (Boolean) Whether heatmaps are enabled for web (the PostHog toolbar heatmap feature).
+            id: (String) The project (environment) ID, used as the resource identifier.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            record_body: (Boolean) Whether to record the bodies of network requests in session replay.
+            record_headers: (Boolean) Whether to record the headers of network requests in session replay.
+            recording_domains: (List of String) Authorized domains for session replay. Maps to the team recording_domains field. Order is preserved.
+            session_recording_network_payload_capture_config: '(Attributes) Controls whether session replay records the headers and bodies of captured network requests. Only takes effect when capture_performance_opt_in is true. Security: recorded headers and bodies can contain sensitive data such as Authorization tokens, cookies, and PII from request/response payloads — enable these deliberately and review PostHog''s network-capture redaction options in your SDK configuration. PostHog replaces this JSON object wholesale on update, so both record_headers and record_body must be set when the block is configured; omitting the whole block leaves the current PostHog value untouched. (see below for nested schema)'
+            session_recording_opt_in: (Boolean) Whether session recording (recording user sessions) is enabled.
+            surveys_opt_in: (Boolean) Whether surveys are enabled.
+            test_account_filters: (String) The internal and test users filter list as a JSON array of filter objects — the definition every managed insight and hog function references through filter_test_accounts. Managing it here makes that shared definition owned by Terraform, so a UI edit surfaces as drift instead of silently changing what all filtered insights measure. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. A filter object may reference a cohort ({"key":"id","type":"cohort","value":<cohort_id>,"operator":"in"}); PostHog injects a read-only cohort_name into such objects, which this provider strips from state so the filter round-trips without a perpetual diff.
+            test_account_filters_default_checked: (Boolean) Whether the internal and test users filters (test_account_filters) are applied by default across the project. PostHog may report this as null until it is first set.
+        importStatements:
+            - |-
+              # Import using the project_id
+              terraform import posthog_project_settings.example your-project-id
+    posthog_proxy_record:
+        subCategory: ""
+        description: Manages an organization-scoped PostHog custom domain proxy record. The resource is immutable — changing the domain triggers replacement, and there is no in-place update path. Create returns immediately with a target_cname; converging to status = "valid" requires DNS to point at that target and is driven outside Terraform.
+        name: posthog_proxy_record
+        title: posthog_proxy_record Resource - posthog
+        examples:
+            - name: analytics
+              manifest: |-
+                {
+                  "domain": "analytics.example.com",
+                  "organization_id": "your-organization-uuid"
+                }
+        argumentDocs:
+            created_at: (String) Timestamp when the proxy record was created.
+            created_by: (Number) Numeric identifier of the user who created the proxy record.
+            domain: (String) The custom domain to provision in PostHog. Configured values are normalised to lowercase with no trailing dot, so Example.COM. and example.com plan as the same value.
+            id: (String) The UUID of the proxy record.
+            message: (String) Additional status detail returned by PostHog, when present.
+            organization_id: (String) Organization for this resource. Overrides the provider-level organization_id. Accepts an organization UUID, an organization slug, or the literal @current (the authenticated user's organization); slugs and @current are resolved to a UUID for API calls while your original value is preserved in state.
+            status: (String) The current provisioning status reported by PostHog.
+            target_cname: '(String) The PostHog-managed CNAME target that your DNS record must point to. Normalised without a trailing dot, ready to use as DNS record content. If your DNS provider requires the DNS-canonical dotted form (e.g. hashicorp/dns), append it yourself: "${posthog_proxy_record.example.target_cname}.".'
+            updated_at: (String) Timestamp when the proxy record was last updated.
+        importStatements:
+            - |-
+              # Import a proxy record using the format: organization_id/proxy_record_id
+              terraform import posthog_proxy_record.analytics your-organization-uuid/your-proxy-record-uuid
+    posthog_role:
+        subCategory: ""
+        description: 'Manages a role within a PostHog organization. ~> Enterprise Feature: Role-based access control (RBAC) requires a PostHog Enterprise plan. See Access Control documentation https://posthog.com/docs/settings/access-control for more details.'
+        name: posthog_role
+        title: posthog_role Resource - posthog
+        examples:
+            - name: engineering
+              manifest: |-
+                {
+                  "name": "Engineering",
+                  "organization_id": "your-organization-uuid"
+                }
+            - name: support
+              manifest: |-
+                {
+                  "name": "Support",
+                  "organization_id": "your-organization-uuid"
+                }
+        argumentDocs:
+            created_at: (String) Timestamp when the role was created.
+            created_by: (String) UUID of the user who created the role.
+            id: (String) The UUID of the role.
+            name: (String) The name of the role.
+            organization_id: (String) Organization for this resource. Overrides the provider-level organization_id. Accepts an organization UUID, an organization slug, or the literal @current (the authenticated user's organization); slugs and @current are resolved to a UUID for API calls while your original value is preserved in state.
+        importStatements:
+            - |-
+              # Import a role using the format: organization_id/role_id
+              terraform import posthog_role.engineering your-organization-uuid/your-role-uuid
+    posthog_role_membership:
+        subCategory: ""
+        description: 'Manages a user''s membership in a role within a PostHog organization. ~> Enterprise Feature: Role-based access control (RBAC) requires a PostHog Enterprise plan. See Access Control documentation https://posthog.com/docs/settings/access-control for more details.'
+        name: posthog_role_membership
+        title: posthog_role_membership Resource - posthog
+        examples:
+            - name: alice_engineering
+              manifest: |-
+                {
+                  "organization_id": "your-organization-uuid",
+                  "role_id": "${posthog_role.engineering.id}",
+                  "user_uuid": "${data.posthog_user.alice.uuid}"
+                }
+              references:
+                role_id: posthog_role.engineering.id
+                user_uuid: data.posthog_user.alice.uuid
+              dependencies:
+                posthog_role.engineering: |-
+                    {
+                      "name": "Engineering",
+                      "organization_id": "your-organization-uuid"
+                    }
+        argumentDocs:
+            id: (String) The UUID of the role membership.
+            joined_at: (String) Timestamp when the user joined the role.
+            organization_id: (String) Organization for this resource. Overrides the provider-level organization_id. Accepts an organization UUID, an organization slug, or the literal @current (the authenticated user's organization); slugs and @current are resolved to a UUID for API calls while your original value is preserved in state.
+            role_id: (String) The UUID of the role.
+            user_email: (String) The email address of the user.
+            user_uuid: (String) The UUID of the user to add to the role.
+        importStatements:
+            - |-
+              # Import a role membership using the format: organization_id/role_id/membership_id
+              terraform import posthog_role_membership.alice_engineering your-organization-uuid/your-role-uuid/your-membership-uuid
+    posthog_subscription:
+        subCategory: ""
+        description: Manage PostHog subscriptions. A subscription delivers a recurring dashboard or insight digest to email or Slack on an rrule schedule.
+        name: posthog_subscription
+        title: posthog_subscription Resource - posthog
+        examples:
+            - name: daily_slack_digest
+              manifest: |-
+                {
+                  "dashboard_export_insights": [
+                    "${posthog_insight.signups.id}",
+                    "${posthog_insight.revenue.id}"
+                  ],
+                  "dashboard_id": "${posthog_dashboard.key_metrics.id}",
+                  "frequency": "daily",
+                  "integration_id": 1,
+                  "interval": 1,
+                  "start_date": "2026-08-17T07:00:00Z",
+                  "target_type": "slack",
+                  "target_value": "C0B9A53J8RF|#reports",
+                  "title": "Daily key metrics"
+                }
+              references:
+                dashboard_export_insights: posthog_insight.signups.id
+                dashboard_id: posthog_dashboard.key_metrics.id
+              dependencies:
+                posthog_dashboard.key_metrics: |-
+                    {
+                      "name": "Key metrics"
+                    }
+                posthog_insight.revenue: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Revenue",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"purchase\", math = \"sum\" }]\n    }\n  })}"
+                    }
+                posthog_insight.signups: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Signups",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"sign up\", math = \"total\" }]\n    }\n  })}"
+                    }
+            - name: weekly_insight_email
+              manifest: |-
+                {
+                  "byweekday": [
+                    "monday"
+                  ],
+                  "frequency": "weekly",
+                  "insight_id": "${posthog_insight.signups.id}",
+                  "interval": 1,
+                  "start_date": "2026-08-17T07:00:00Z",
+                  "target_type": "email",
+                  "target_value": "team@example.com"
+                }
+              references:
+                insight_id: posthog_insight.signups.id
+              dependencies:
+                posthog_dashboard.key_metrics: |-
+                    {
+                      "name": "Key metrics"
+                    }
+                posthog_insight.revenue: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Revenue",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"purchase\", math = \"sum\" }]\n    }\n  })}"
+                    }
+                posthog_insight.signups: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Signups",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"sign up\", math = \"total\" }]\n    }\n  })}"
+                    }
+            - name: monthly_first_monday
+              manifest: |-
+                {
+                  "bysetpos": 1,
+                  "byweekday": [
+                    "monday"
+                  ],
+                  "dashboard_export_insights": [
+                    "${posthog_insight.revenue.id}"
+                  ],
+                  "dashboard_id": "${posthog_dashboard.key_metrics.id}",
+                  "enabled": true,
+                  "frequency": "monthly",
+                  "integration_id": 1,
+                  "interval": 1,
+                  "start_date": "2026-08-17T07:00:00Z",
+                  "target_type": "slack",
+                  "target_value": "C0B9A53J8RF|#reports"
+                }
+              references:
+                dashboard_export_insights: posthog_insight.revenue.id
+                dashboard_id: posthog_dashboard.key_metrics.id
+              dependencies:
+                posthog_dashboard.key_metrics: |-
+                    {
+                      "name": "Key metrics"
+                    }
+                posthog_insight.revenue: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Revenue",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"purchase\", math = \"sum\" }]\n    }\n  })}"
+                    }
+                posthog_insight.signups: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Signups",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"sign up\", math = \"total\" }]\n    }\n  })}"
+                    }
+            - name: weekly_prompt_digest
+              manifest: |-
+                {
+                  "ai_prompt": "Top 5 events by volume this week, with counts and unique users for each.",
+                  "ai_prompt_config": "${jsonencode({\n    window = { mode = \"last_n_days\", start_days_ago = 7, end_days_ago = null }\n  })}",
+                  "byweekday": [
+                    "monday"
+                  ],
+                  "frequency": "weekly",
+                  "interval": 1,
+                  "start_date": "2026-08-17T07:00:00Z",
+                  "target_type": "email",
+                  "target_value": "growth@example.com",
+                  "title": "Weekly AI digest"
+                }
+              dependencies:
+                posthog_dashboard.key_metrics: |-
+                    {
+                      "name": "Key metrics"
+                    }
+                posthog_insight.revenue: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Revenue",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"purchase\", math = \"sum\" }]\n    }\n  })}"
+                    }
+                posthog_insight.signups: |-
+                    {
+                      "dashboard_ids": [
+                        "${posthog_dashboard.key_metrics.id}"
+                      ],
+                      "name": "Signups",
+                      "query_json": "${jsonencode({\n    kind = \"InsightVizNode\"\n    source = {\n      kind   = \"TrendsQuery\"\n      series = [{ kind = \"EventsNode\", event = \"sign up\", math = \"total\" }]\n    }\n  })}"
+                    }
+        argumentDocs:
+            ai_prompt: (String) Natural-language prompt for an AI-summary subscription. PostHog runs the prompt over your project data and delivers the result on the schedule. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. The prompt text itself can be edited in place; switching to or from a dashboard/insight subject forces replacement.
+            ai_prompt_config: (String) Optional JSON config for an ai_prompt subscription, e.g. the analysis window ({"window":{"mode":"last_n_days","start_days_ago":7,"end_days_ago":null}}). Compared semantically, so key ordering and whitespace do not produce a diff. Only meaningful when ai_prompt is set.
+            bysetpos: (Number) Selects which occurrence within the period to use (rrule BYSETPOS), used together with byweekday on a monthly frequency. For example byweekday = ["monday"] with bysetpos = 1 means the first Monday of each month, and bysetpos = -1 means the last Monday. Positive values count from the start of the period, negative from the end. Leave unset for simple daily/weekly schedules.
+            byweekday: (Set of String) Lowercase weekday names (monday..sunday) used with weekly/monthly frequency.
+            created_at: (String) Timestamp when the subscription was created.
+            dashboard_export_insights: (Set of Number) Insight IDs from the dashboard to include in the digest. Required and non-empty when dashboard_id is set (the API rejects an empty selection). Ignored for insight subscriptions.
+            dashboard_id: (Number) ID of the dashboard to send a digest for. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+            enabled: (Boolean) Whether the subscription is active. Defaults to true. Set to false to pause without deleting.
+            frequency: '(String) Recurrence unit: daily, weekly, monthly, or yearly.'
+            id: (Number) Numeric ID of the subscription.
+            insight_id: (Number) ID of a single insight to subscribe to. Exactly one of dashboard_id, insight_id, or ai_prompt must be set. Changing which subject is targeted forces replacement.
+            integration_id: (Number) ID of the Slack integration to deliver through. Required when target_type is slack, and must be omitted for email. To find it, connect Slack under Settings → Integrations in the PostHog UI, then list this project's integrations via GET /api/projects/<project_id>/integrations/ and use the id of the entry whose kind is slack.
+            interval: (Number) Every N of the frequency unit (e.g. interval = 2 with frequency = "weekly" is every two weeks).
+            next_delivery_date: (String) Computed timestamp of the next scheduled delivery.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            resource_type: '(String) Server-inferred subject type: dashboard, insight, or ai_prompt.'
+            start_date: '(String) Required RFC3339 datetime that anchors the delivery schedule (the recurrence''s dtstart). It sets when in the cycle deliveries land — the time of day for daily, and the weekday/day-of-month plus time for weekly/monthly. PostHog requires it and has no server default, so it must always be set. Example: 2026-08-17T09:00:00Z delivers at 09:00 UTC.'
+            summary: (String) Server-generated human-readable schedule summary (e.g. sent every week on Monday). Recomputed whenever the schedule changes.
+            summary_enabled: (Boolean) Whether to attach an AI-generated summary to the delivery. Defaults to false.
+            summary_prompt_guide: (String) Optional free-text guidance steering the AI summary (only used when summary_enabled is true).
+            target_type: '(String) Delivery channel type: email or slack.'
+            target_value: (String) Delivery target. For email a plain address (or comma-separated addresses). For slack the channel in the form <channelId>|#<channel-name> (e.g. C0B9A53J8RF|#reports). Stored verbatim; the API does not parse the pipe/#name suffix.
+            title: (String) Optional human-readable label for the subscription.
+        importStatements:
+            - |-
+              # Import using: project_id/subscription_id
+              terraform import posthog_subscription.daily_slack_digest 12345/678
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_subscription.daily_slack_digest 678
+    posthog_survey:
+        subCategory: ""
+        description: Manage PostHog surveys via the project-scoped surveys API.
+        name: posthog_survey
+        title: posthog_survey Resource - posthog
+        examples:
+            - name: nps
+              manifest: |-
+                {
+                  "conditions_json": "${jsonencode({\n    url = \"https://us.posthog.com/*\"\n  })}",
+                  "description": "Quarterly NPS survey for PostHog users.",
+                  "name": "PostHog NPS",
+                  "questions_json": "${jsonencode([\n    {\n      type          = \"rating\"\n      question      = \"How would you rate your PostHog experience?\"\n      scale         = 10\n      buttonText    = \"Submit\"\n      isNpsQuestion = true\n    }\n  ])}",
+                  "schedule": "once",
+                  "type": "popover"
+                }
+            - name: feature_feedback
+              manifest: |-
+                {
+                  "appearance_json": "${jsonencode({\n    submitButtonText = \"Send feedback\"\n  })}",
+                  "linked_flag_id": 12345,
+                  "name": "New onboarding feedback",
+                  "questions_json": "${jsonencode([\n    {\n      type        = \"open\"\n      question    = \"What was the most confusing part of the new onboarding?\"\n      description = \"We read every response.\"\n    }\n  ])}",
+                  "schedule": "always",
+                  "type": "popover"
+                }
+        argumentDocs:
+            appearance_json: (String) JSON object describing survey appearance settings.
+            archived: (Boolean) Whether the survey is archived.
+            conditions_json: (String) JSON object describing survey display and targeting conditions.
+            create_in_folder: (String) Folder identifier used only during survey creation.
+            created_at: (String) RFC3339 creation timestamp of the survey.
+            created_by_json: (String) JSON object describing the survey creator.
+            description: (String) Survey description.
+            enable_iframe_embedding: (Boolean) Whether the survey is embeddable in an iframe.
+            enable_partial_responses: (Boolean) Whether partial responses are stored when a respondent exits early.
+            end_date: (String) RFC3339 end date for the survey.
+            form_content_json: (String) JSON object describing custom form content.
+            id: (String) UUID of the survey.
+            internal_targeting_flag_json: (String) JSON object describing the internal targeting feature flag returned by the API.
+            iteration_count: (Number) Number of survey recurrences when schedule is recurring.
+            iteration_frequency_days: (Number) Number of days between recurrences when schedule is recurring.
+            linked_flag_id: (Number) Feature flag ID linked to the survey. Remove this attribute to unlink the flag from the survey.
+            linked_flag_json: (String) JSON object describing the linked feature flag returned by the API.
+            linked_insight_id: (Number) Insight ID linked to the survey. This field is write-only in the PostHog API and is preserved from Terraform state when configured.
+            name: (String) Survey name.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            questions_json: (String) JSON array describing the survey questions.
+            response_sampling_daily_limits_json: (String) JSON object describing daily response sampling limits.
+            response_sampling_interval: (Number) Response sampling interval value.
+            response_sampling_interval_type: (String) Response sampling interval type. Supported values are day, week, and month.
+            response_sampling_limit: (Number) Maximum responses allowed during each sampling interval.
+            response_sampling_start_date: (String) RFC3339 date when response sampling starts.
+            responses_limit: (Number) Maximum number of responses allowed for the survey.
+            schedule: (String) Survey schedule. Supported values are once, recurring, and always.
+            start_date: (String) RFC3339 start date for the survey.
+            targeting_flag_filters_json: (String) JSON object describing targeting flag filters. This input is write-only in the PostHog API and is preserved from Terraform state when configured.
+            targeting_flag_id: (Number) Existing targeting feature flag ID to use for this survey. Remove this attribute to detach the targeting flag.
+            targeting_flag_json: (String) JSON object describing the targeting feature flag returned by the API.
+            translations_json: (String) JSON object describing translated survey content.
+            type: (String) Survey type. Supported values are popover, widget, external_survey, and api.
+        importStatements:
+            - terraform import posthog_survey.example "<project_id>/<survey_uuid>"
+    posthog_warehouse_table:
+        subCategory: ""
+        description: A self-managed PostHog data warehouse table that queries files in place from an S3-compatible bucket you control (Amazon S3, Google Cloud Storage via HMAC keys, Cloudflare R2, and similar). PostHog reads the files when the table is created to work out its columns, so the files must exist and the credentials must be able to read them. Changing format or url_pattern replaces the table; the table is queried by name, so saved queries keep working. Tables synced by a data source are managed with posthog_external_data_source instead.
+        name: posthog_warehouse_table
+        title: posthog_warehouse_table Resource - posthog
+        examples:
+            - name: orders
+              manifest: |-
+                {
+                  "access_key": "${var.warehouse_bucket_access_key}",
+                  "access_secret": "${var.warehouse_bucket_access_secret}",
+                  "format": "Parquet",
+                  "name": "orders",
+                  "url_pattern": "https://your-bucket.s3.us-east-1.amazonaws.com/orders/*.parquet"
+                }
+              references:
+                access_key: var.warehouse_bucket_access_key
+                access_secret: var.warehouse_bucket_access_secret
+        argumentDocs:
+            access_key: (String, Sensitive) Access key ID for the bucket (an AWS access key ID, a Google Cloud HMAC key, or the equivalent for another S3-compatible store). It needs permission to list the bucket and read the files. PostHog never returns it, so Terraform keeps the configured value and cannot detect a key changed outside Terraform; after an import, the first apply sends the configured key.
+            access_secret: (String, Sensitive) Secret for access_key. PostHog stores it encrypted and never returns it, so Terraform keeps the configured value.
+            created_at: (String) Timestamp when the table was created.
+            format: '(String) File format of every file the pattern matches: Parquet, CSV, CSVWithNames, JSONEachRow, Delta, or DeltaS3Wrapper. PostHog decides which values it accepts. Changing it replaces the table.'
+            id: (String) Warehouse table ID (UUID).
+            name: (String) Name the table is queried by in HogQL. Must be unique within the project, start with a letter or underscore, and contain only letters, numbers, and underscores.
+            project_id: (String) Project ID (environment) for this resource. Overrides the provider-level project_id.
+            url_pattern: (String) HTTPS URL of the files to read, with * matching any part of a path segment (e.g. https://your-bucket.s3.us-east-1.amazonaws.com/orders/*.parquet). All matched files are read as one table. Changing it replaces the table.
+        importStatements:
+            - |-
+              # Import using: project_id/warehouse_table_id
+              terraform import posthog_warehouse_table.example 12345/01900000-0000-7000-8000-000000000000
+
+              # If project_id is configured at the provider level, you can omit it:
+              terraform import posthog_warehouse_table.example 01900000-0000-7000-8000-000000000000
+
+              # PostHog never returns the access key or secret, so the first apply after an
+              # import sends the configured values as an in-place update.

@@ -1,13 +1,12 @@
 package config
 
 import (
-	// Note(turkenh): we are importing this to embed provider schema document
 	_ "embed"
 
 	ujconfig "github.com/crossplane/upjet/v2/pkg/config"
+	"github.com/posthog/terraform-provider/provider"
 
-	nullCluster "github.com/Cliftonz/provider-upjet-posthog/config/cluster/null"
-	nullNamespaced "github.com/Cliftonz/provider-upjet-posthog/config/namespaced/null"
+	"github.com/Cliftonz/provider-upjet-posthog/internal/version"
 )
 
 const (
@@ -21,47 +20,19 @@ var providerSchema string
 //go:embed provider-metadata.yaml
 var providerMetadata string
 
-// GetProvider returns provider configuration
 func GetProvider() *ujconfig.Provider {
 	pc := ujconfig.NewProvider([]byte(providerSchema), resourcePrefix, modulePath, []byte(providerMetadata),
-		ujconfig.WithRootGroup("posthog.clifton.quest"),
-		ujconfig.WithIncludeList(ExternalNameConfigured()),
-		ujconfig.WithFeaturesPackage("internal/features"),
-		ujconfig.WithDefaultResourceOptions(
-			ExternalNameConfigurations(),
-		))
-
-	for _, configure := range []func(provider *ujconfig.Provider){
-		// add custom config functions
-		nullCluster.Configure,
-	} {
-		configure(pc)
-	}
-
-	pc.ConfigureResources()
-	return pc
-}
-
-// GetProviderNamespaced returns the namespaced provider configuration
-func GetProviderNamespaced() *ujconfig.Provider {
-	pc := ujconfig.NewProvider([]byte(providerSchema), resourcePrefix, modulePath, []byte(providerMetadata),
 		ujconfig.WithRootGroup("posthog.m.clifton.quest"),
-		ujconfig.WithIncludeList(ExternalNameConfigured()),
+		ujconfig.WithIncludeList(nil),
+		ujconfig.WithTerraformPluginFrameworkIncludeList(resourceNames()),
+		ujconfig.WithTerraformPluginFrameworkProvider(provider.New(version.Version)()),
 		ujconfig.WithFeaturesPackage("internal/features"),
-		ujconfig.WithDefaultResourceOptions(
-			ExternalNameConfigurations(),
-		),
+		ujconfig.WithDefaultResourceOptions(configureResource),
 		ujconfig.WithExampleManifestConfiguration(ujconfig.ExampleManifestConfiguration{
 			ManagedResourceNamespace: "crossplane-system",
 		}))
 
-	for _, configure := range []func(provider *ujconfig.Provider){
-		// add custom config functions
-		nullNamespaced.Configure,
-	} {
-		configure(pc)
-	}
-
+	configureReferences(pc)
 	pc.ConfigureResources()
 	return pc
 }

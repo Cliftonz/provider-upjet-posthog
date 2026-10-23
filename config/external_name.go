@@ -1,45 +1,63 @@
 package config
 
 import (
-	"github.com/crossplane/upjet/v2/pkg/config"
+	ujconfig "github.com/crossplane/upjet/v2/pkg/config"
 )
 
-// ExternalNameConfigs contains all external name configurations for this
-// provider.
-var ExternalNameConfigs = map[string]config.ExternalName{
-	// Import requires using a randomly generated ID from provider: nl-2e21sda
-	"null_resource": idWithStub(),
+const zeroUUID = "00000000-0000-0000-0000-000000000000"
+
+var (
+	numericID   = ujconfig.FrameworkResourceWithComputedIdentifier("id", "0")
+	uuidID      = ujconfig.FrameworkResourceWithComputedIdentifier("id", zeroUUID)
+	compositeID = ujconfig.FrameworkResourceWithComputedIdentifier("id", "0/placeholder")
+)
+
+type resource struct {
+	group        string
+	kind         string
+	externalName ujconfig.ExternalName
 }
 
-func idWithStub() config.ExternalName {
-	e := config.IdentifierFromProvider
-	e.GetExternalNameFn = func(tfstate map[string]any) (string, error) {
-		en, _ := config.IDAsExternalName(tfstate)
-		return en, nil
-	}
-	return e
+var resources = map[string]resource{
+	"posthog_project":                {"project", "Project", numericID},
+	"posthog_project_settings":       {"project", "Settings", numericID},
+	"posthog_project_default_access": {"project", "DefaultAccess", numericID},
+	"posthog_project_member":         {"project", "Member", compositeID},
+	"posthog_organization_member":    {"organization", "Member", uuidID},
+	"posthog_proxy_record":           {"organization", "ProxyRecord", uuidID},
+	"posthog_role":                   {"access", "Role", uuidID},
+	"posthog_role_membership":        {"access", "RoleMembership", uuidID},
+	"posthog_access_control":         {"access", "AccessControl", compositeID},
+	"posthog_action":                 {"analytics", "Action", numericID},
+	"posthog_cohort":                 {"analytics", "Cohort", numericID},
+	"posthog_insight":                {"analytics", "Insight", numericID},
+	"posthog_insight_variable":       {"analytics", "InsightVariable", uuidID},
+	"posthog_alert":                  {"analytics", "Alert", uuidID},
+	"posthog_subscription":           {"analytics", "Subscription", numericID},
+	"posthog_dashboard":              {"dashboard", "Dashboard", numericID},
+	"posthog_dashboard_layout":       {"dashboard", "Layout", numericID},
+	"posthog_feature_flag":           {"featureflag", "FeatureFlag", numericID},
+	"posthog_early_access_feature":   {"featureflag", "EarlyAccessFeature", uuidID},
+	"posthog_experiment":             {"experiment", "Experiment", numericID},
+	"posthog_survey":                 {"survey", "Survey", uuidID},
+	"posthog_hog_function":           {"cdp", "HogFunction", uuidID},
+	"posthog_external_data_source":   {"warehouse", "ExternalDataSource", uuidID},
+	"posthog_warehouse_table":        {"warehouse", "Table", uuidID},
+	"posthog_logs_alert":             {"logs", "Alert", uuidID},
+	"posthog_logs_alert_destination": {"logs", "AlertDestination", uuidID},
 }
 
-// ExternalNameConfigurations applies all external name configs listed in the
-// table ExternalNameConfigs and sets the version of those resources to v1beta1
-// assuming they will be tested.
-func ExternalNameConfigurations() config.ResourceOption {
-	return func(r *config.Resource) {
-		if e, ok := ExternalNameConfigs[r.Name]; ok {
-			r.ExternalName = e
-		}
-	}
+func configureResource(r *ujconfig.Resource) {
+	c := resources[r.Name]
+	r.ShortGroup = c.group
+	r.Kind = c.kind
+	r.ExternalName = c.externalName
 }
 
-// ExternalNameConfigured returns the list of all resources whose external name
-// is configured manually.
-func ExternalNameConfigured() []string {
-	l := make([]string, len(ExternalNameConfigs))
-	i := 0
-	for name := range ExternalNameConfigs {
-		// $ is added to match the exact string since the format is regex.
-		l[i] = name + "$"
-		i++
+func resourceNames() []string {
+	names := make([]string, 0, len(resources))
+	for name := range resources {
+		names = append(names, name+"$")
 	}
-	return l
+	return names
 }

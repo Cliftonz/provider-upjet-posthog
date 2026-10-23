@@ -26,6 +26,9 @@
 // Generate crossplane-runtime methodsets (resource.Claim, etc)
 //go:generate go run -tags generate github.com/crossplane/crossplane-tools/cmd/angryjet generate-methodsets --header-file=../hack/boilerplate.go.txt ./...
 
+// Break cross-group import cycles in reference resolvers
+//go:generate go run github.com/crossplane/upjet/v2/cmd/resolver -g posthog.m.clifton.quest -a github.com/Cliftonz/provider-upjet-posthog/internal/apis -s
+
 package apis
 
 import (
