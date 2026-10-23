@@ -40,6 +40,8 @@ data:
   SITE_URL: ${POSTHOG_HOST}
   SECRET_KEY: posthog-e2e-harness-not-a-secret
   ENCRYPTION_SALT_KEYS: 00beef0000beef0000beef0000beef00
+  PERSONHOG_ADDR: personhog-router:50052
+  PERSONHOG_ENABLED: "true"
 ---
 apiVersion: v1
 kind: Service

@@ -10,6 +10,8 @@ from ee.models.license import License
 from posthog.accessible_teams import AccessibleTeams
 from posthog.models import PersonalAPIKey, User
 from posthog.personal_api_key_minting import mint_personal_api_key
+from products.cdp.backend.templates import HOG_FUNCTION_TEMPLATES
+from products.cdp.backend.templates.hog_function_template import sync_template_to_db
 
 ADMIN_EMAIL = "admin@posthog-e2e.local"
 MEMBER_EMAIL = "member@posthog-e2e.local"
@@ -18,7 +20,7 @@ PASSWORD = "posthog-e2e-password"
 admin = User.objects.filter(email=ADMIN_EMAIL).first()
 if admin:
     org = admin.organization
-    team = admin.team
+    team = org.teams.order_by("id").first()
 else:
     org, team, admin = User.objects.bootstrap("posthog-e2e", ADMIN_EMAIL, PASSWORD, "Admin")
 
@@ -30,6 +32,9 @@ License.objects.get_or_create(
     plan="enterprise",
     defaults={"key": "posthog-e2e", "valid_until": datetime(2099, 1, 1, tzinfo=timezone.utc)},
 )
+
+for template in HOG_FUNCTION_TEMPLATES:
+    sync_template_to_db(template)
 
 PersonalAPIKey.objects.filter(user=admin, label="posthog-e2e").delete()
 minted = mint_personal_api_key(admin, label="posthog-e2e", scopes=["*"], teams=AccessibleTeams.all_for(admin))

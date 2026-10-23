@@ -8,7 +8,8 @@ set +a
 
 CLUSTER=posthog-e2e
 NAMESPACE=posthog
-export POSTHOG_HOST=http://host.docker.internal:30800
+export POSTHOG_HOST=http://localhost:30800
+POSTHOG_CLUSTER_HOST=http://web.$NAMESPACE.svc.cluster.local:8000
 SRC=.out/src
 kc() { kubectl --context "kind-$CLUSTER" --namespace "$NAMESPACE" "$@"; }
 
@@ -42,5 +43,5 @@ kc wait --for=condition=complete job/kafka-topics --timeout=30m
 kc wait --for=condition=Available deployment --all --timeout=90m
 
 BOOTSTRAP="$(kc exec -i deploy/web -- env PYTHONPATH=/code:/python-runtime python - < bootstrap.py | grep '^POSTHOG_')"
-printf 'POSTHOG_HOST=%s\n%s\n' "$POSTHOG_HOST" "$BOOTSTRAP" > .out/posthog.env
+printf 'POSTHOG_HOST=%s\nPOSTHOG_CLUSTER_HOST=%s\n%s\n' "$POSTHOG_HOST" "$POSTHOG_CLUSTER_HOST" "$BOOTSTRAP" > .out/posthog.env
 echo "wrote $(pwd)/.out/posthog.env"

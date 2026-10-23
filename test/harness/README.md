@@ -19,7 +19,8 @@ First boot runs all PostHog migrations and takes about 50 minutes on 4 CPUs; `up
 
 | Variable | Meaning |
 |---|---|
-| `POSTHOG_HOST` | `http://host.docker.internal:30800`, reachable from the host and from pods |
+| `POSTHOG_HOST` | `http://localhost:30800`, reachable from the host (kind maps the NodePort) |
+| `POSTHOG_CLUSTER_HOST` | `http://web.posthog.svc.cluster.local:8000`, reachable from pods in the cluster, such as the provider |
 | `POSTHOG_API_KEY` | personal API key with scope `*` for the admin user |
 | `POSTHOG_ORGANIZATION_ID` | organization of the admin user |
 | `POSTHOG_PROJECT_ID` | default project of that organization |
