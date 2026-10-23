@@ -2,6 +2,14 @@ apiVersion: meta.pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-posthog
+  annotations:
+    meta.crossplane.io/maintainer: Cliftonz (https://github.com/Cliftonz)
+    meta.crossplane.io/source: github.com/Cliftonz/provider-upjet-posthog
+    meta.crossplane.io/license: MPL-2.0
+    meta.crossplane.io/description: Crossplane provider for managing PostHog projects, feature flags, insights, dashboards, and related configuration.
+    friendly-name.meta.crossplane.io: Provider PostHog
 spec:
+  crossplane:
+    version: ">=v2.0.0"
   capabilities:
     - SafeStart

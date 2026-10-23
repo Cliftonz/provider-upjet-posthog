@@ -3,4 +3,4 @@ kind: Provider
 metadata:
   name: provider-posthog
 spec:
-  package: xpkg.crossplane.io/Cliftonz/provider-posthog:v0.1.0
+  package: xpkg.upbound.io/cliftonz/provider-posthog:v1.0.25

@@ -1,4 +1,4 @@
-apiVersion: posthog.m.crossplane.io/v1beta1
+apiVersion: posthog.m.clifton.quest/v1beta1
 kind: ClusterProviderConfig
 metadata:
   name: default
