@@ -1,0 +1,268 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector: {app: db}
+  ports: [{port: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  selector: {matchLabels: {app: db}}
+  template:
+    metadata: {labels: {app: db}}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: db
+          image: ${POSTGRES_IMAGE}
+          env:
+            - {name: POSTGRES_USER, value: posthog}
+            - {name: POSTGRES_DB, value: posthog}
+            - {name: POSTGRES_PASSWORD, value: posthog}
+          readinessProbe:
+            exec: {command: [pg_isready, -U, posthog, -h, 127.0.0.1]}
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+      volumes: [{name: data, emptyDir: {}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis7
+spec:
+  selector: {app: redis7}
+  ports: [{port: 6379}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis7
+spec:
+  selector: {matchLabels: {app: redis7}}
+  template:
+    metadata: {labels: {app: redis7}}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: redis7
+          image: ${REDIS_IMAGE}
+          args: [redis-server, --maxmemory-policy, allkeys-lru, --maxmemory, 200mb]
+          readinessProbe:
+            exec: {command: [redis-cli, ping]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+spec:
+  selector: {app: zookeeper}
+  ports: [{port: 2181}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+spec:
+  selector: {matchLabels: {app: zookeeper}}
+  template:
+    metadata: {labels: {app: zookeeper}}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: zookeeper
+          image: ${ZOOKEEPER_IMAGE}
+          readinessProbe:
+            tcpSocket: {port: 2181}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+spec:
+  selector: {app: kafka}
+  ports:
+    - {name: kafka, port: 9092}
+    - {name: rpc, port: 33145}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+spec:
+  selector: {matchLabels: {app: kafka}}
+  template:
+    metadata: {labels: {app: kafka}}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: kafka
+          image: ${REDPANDA_IMAGE}
+          args:
+            - redpanda
+            - start
+            - --kafka-addr=internal://0.0.0.0:9092
+            - --advertise-kafka-addr=internal://kafka:9092
+            - --rpc-addr=0.0.0.0:33145
+            - --advertise-rpc-addr=kafka:33145
+            - --mode=dev-container
+            - --smp=1
+            - --memory=1G
+            - --reserve-memory=0M
+            - --overprovisioned
+            - --set
+            - redpanda.auto_create_topics_enabled=true
+          readinessProbe:
+            httpGet: {path: /v1/status/ready, port: 9644}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topics
+spec:
+  template:
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: topics
+          image: ${REDPANDA_IMAGE}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until rpk cluster info --brokers kafka:9092; do sleep 2; done
+              rpk topic create $(grep -vE '^[[:space:]]*#|^[[:space:]]*$' /topics/topics.txt) --brokers kafka:9092 -p 1 -r 1
+          volumeMounts: [{name: topics, mountPath: /topics}]
+      volumes: [{name: topics, configMap: {name: kafka-topics}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+spec:
+  selector: {app: clickhouse}
+  ports:
+    - {name: native, port: 9000}
+    - {name: http, port: 8123}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+spec:
+  selector: {matchLabels: {app: clickhouse}}
+  template:
+    metadata: {labels: {app: clickhouse}}
+    spec:
+      hostname: clickhouse
+      enableServiceLinks: false
+      initContainers:
+        - name: posthog-files
+          image: ${POSTHOG_IMAGE}
+          command: [sh, -c, "cp -a /code/posthog/idl/. /idl/ && cp -a /code/posthog/user_scripts/. /user_scripts/"]
+          volumeMounts:
+            - {name: idl, mountPath: /idl}
+            - {name: user-scripts, mountPath: /user_scripts}
+      containers:
+        - name: clickhouse
+          image: ${CLICKHOUSE_IMAGE}
+          env:
+            - {name: CLICKHOUSE_SKIP_USER_SETUP, value: "1"}
+            - {name: KAFKA_HOSTS, value: "kafka:9092"}
+          readinessProbe:
+            httpGet: {path: /ping, port: 8123}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/clickhouse}
+            - {name: idl, mountPath: /idl}
+            - {name: user-scripts, mountPath: /var/lib/clickhouse/user_scripts}
+            - {name: initdb, mountPath: /docker-entrypoint-initdb.d}
+            - {name: config, mountPath: /etc/clickhouse-server/config.xml, subPath: config.xml}
+            - {name: config, mountPath: /etc/clickhouse-server/config.d/default.xml, subPath: default.xml}
+            - {name: config, mountPath: /etc/clickhouse-server/users.xml, subPath: users.xml}
+            - {name: config, mountPath: /etc/clickhouse-server/user_defined_function.xml, subPath: user_defined_function.xml}
+      volumes:
+        - {name: data, emptyDir: {}}
+        - {name: idl, emptyDir: {}}
+        - {name: user-scripts, emptyDir: {}}
+        - {name: initdb, configMap: {name: clickhouse-initdb}}
+        - {name: config, configMap: {name: clickhouse-config}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: objectstorage
+spec:
+  selector: {app: objectstorage}
+  ports: [{port: 19000}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: objectstorage
+spec:
+  selector: {matchLabels: {app: objectstorage}}
+  template:
+    metadata: {labels: {app: objectstorage}}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: objectstorage
+          image: ${SEAWEEDFS_IMAGE}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              (
+                  while true; do
+                      printf 's3.configure -access_key=object_storage_root_user -secret_key=object_storage_root_password -user=posthog -actions=Admin -apply\ns3.bucket.create -name posthog\ns3.bucket.create -name ai-blobs\n' \
+                              | /usr/bin/weed shell -master=localhost:19001 >/dev/null 2>&1 || true
+                      if echo 's3.bucket.list' | /usr/bin/weed shell -master=localhost:19001 2>/dev/null | grep -q ai-blobs \
+                              && echo 's3.configure' | /usr/bin/weed shell -master=localhost:19001 2>/dev/null | grep -q object_storage_root_user; then
+                          touch /tmp/objectstorage-ready
+                          break
+                      fi
+                      sleep 1
+                  done
+              ) &
+              exec /usr/bin/weed server -master.port=19001 -s3 -s3.port=19000 -dir=/data -volume.max=1000 -master.volumePreallocate=false
+          readinessProbe:
+            exec: {command: [test, -f, /tmp/objectstorage-ready]}
+          volumeMounts: [{name: data, mountPath: /data}]
+      volumes: [{name: data, emptyDir: {}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal
+spec:
+  selector: {app: temporal}
+  ports: [{port: 7233}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal
+spec:
+  selector: {matchLabels: {app: temporal}}
+  template:
+    metadata: {labels: {app: temporal}}
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: temporal
+          image: ${TEMPORAL_IMAGE}
+          env:
+            - {name: DB, value: postgres12}
+            - {name: DB_PORT, value: "5432"}
+            - {name: POSTGRES_USER, value: posthog}
+            - {name: POSTGRES_PWD, value: posthog}
+            - {name: POSTGRES_SEEDS, value: db}
+            - {name: DYNAMIC_CONFIG_FILE_PATH, value: config/dynamicconfig/development-sql.yaml}
+            - {name: ENABLE_ES, value: "false"}
+          readinessProbe:
+            tcpSocket: {port: 7233}
+          volumeMounts: [{name: dynamicconfig, mountPath: /etc/temporal/config/dynamicconfig}]
+      volumes: [{name: dynamicconfig, configMap: {name: temporal-dynamicconfig}}]
