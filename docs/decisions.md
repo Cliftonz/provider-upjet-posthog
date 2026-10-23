@@ -23,3 +23,6 @@
 | 2026-10-22 | `config/schema.json` is built from the fork binary via terraform 1.5.7 `dev_overrides`, without `init`; `pull-docs` fetches the fork at `TERRAFORM_PROVIDER_REF` | Section 2 schema source; `dev_overrides` worked so no filesystem mirror is needed |
 | 2026-10-22 | Runtime image contains only the provider binary | Section 2 |
 | 2026-10-22 | golangci-lint raised to 2.14.0 and `goconst` excluded under `config/` | 2.13.0 cannot read Go 1.27 export data; the resource tables repeat group and resource names by design |
+| 2026-10-22 | `secretRef.namespace` stays required on `ProviderConfig`; the provider overrides it with the managed resource's namespace | The CRD requires the field; dropping it would diverge from the shared credentials schema |
+| 2026-10-22 | An empty `api_key` is treated as missing | An empty string must never reach upstream |
+| 2026-10-22 | Non-string credential values are rejected as malformed JSON | Every credential key is a string in the upstream provider configuration |

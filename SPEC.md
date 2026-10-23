@@ -118,10 +118,11 @@ spec:
     source: Secret
     secretRef:
       name: posthog-creds
+      namespace: team-a
       key: credentials
 ```
 
-A `ProviderConfig` reads the Secret from its own namespace; a `ClusterProviderConfig` requires `secretRef.namespace`.
+`secretRef.namespace` is required by the CRD. A `ProviderConfig` overrides it with the managed resource's namespace, which is its own; a `ClusterProviderConfig` reads the Secret from `secretRef.namespace`.
 
 ## 6. External name configuration
 
