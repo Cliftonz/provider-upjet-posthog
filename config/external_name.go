@@ -52,6 +52,7 @@ func configureResource(r *ujconfig.Resource) {
 	r.ShortGroup = c.group
 	r.Kind = c.kind
 	r.ExternalName = c.externalName
+	r.TerraformConversions = append(r.TerraformConversions, idToString{})
 }
 
 func resourceNames() []string {
