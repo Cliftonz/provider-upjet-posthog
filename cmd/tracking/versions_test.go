@@ -55,6 +55,9 @@ func TestOldestPending(t *testing.T) {
 		{"drafts are excluded", []release{{Tag: "v1.0.9", Draft: true}, {Tag: "v1.0.10"}}, ours, nil, "1.0.10"},
 		{"flagged prereleases are excluded", []release{{Tag: "v1.0.9", Prerelease: true}, {Tag: "v1.0.10"}}, ours, nil, "1.0.10"},
 		{"semver prereleases are excluded", []release{{Tag: "v1.0.9-rc.1"}, {Tag: "v1.0.10"}}, ours, nil, "1.0.10"},
+		{"non-semver upstream tags are ignored", []release{{Tag: "nightly"}, {Tag: "v1.0.11"}}, ours, nil, "1.0.11"},
+		{"our drafts do not count as our latest", upstream, []release{{Tag: "v1.0.7"}, {Tag: "v2.0.0", Draft: true}}, nil, "1.0.8"},
+		{"our prereleases do not count as our latest", upstream, []release{{Tag: "v1.0.7"}, {Tag: "v2.0.0", Prerelease: true}}, nil, "1.0.8"},
 		{"nothing newer", []release{{Tag: "v1.0.8"}}, ours, nil, ""},
 		{"no release of ours", upstream, nil, nil, ""},
 	}

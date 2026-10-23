@@ -41,6 +41,9 @@ func highestForkTag(refs []string, upstreamVersion string) string {
 func latestRelease(ours []release) *version.Version {
 	var latest *version.Version
 	for _, r := range ours {
+		if r.Draft || r.Prerelease {
+			continue
+		}
 		v := version.MustParseSemantic(r.Tag)
 		if latest == nil || v.GreaterThan(latest) {
 			latest = v
@@ -53,8 +56,8 @@ func pendingVersion(r release, latest *version.Version, a acks) *version.Version
 	if r.Draft || r.Prerelease {
 		return nil
 	}
-	v := version.MustParseSemantic(r.Tag)
-	if v.PreRelease() != "" || !v.GreaterThan(latest) || a[v.String()].Skip {
+	v, err := version.ParseSemantic(r.Tag)
+	if err != nil || v.PreRelease() != "" || !v.GreaterThan(latest) || a[v.String()].Skip {
 		return nil
 	}
 	return v
