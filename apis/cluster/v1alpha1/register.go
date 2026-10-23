@@ -7,7 +7,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "template.crossplane.io"
+	Group   = "posthog.clifton.quest"
 	Version = "v1alpha1"
 )
 

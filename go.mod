@@ -1,4 +1,4 @@
-module github.com/crossplane/upjet-provider-template
+module github.com/Cliftonz/provider-upjet-posthog
 
 go 1.26.7
 

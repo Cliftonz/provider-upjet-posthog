@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
+// SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://clifton.quest>
 //
 // SPDX-License-Identifier: Apache-2.0
 

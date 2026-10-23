@@ -21,8 +21,8 @@ import (
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	v1alpha1 "github.com/crossplane/upjet-provider-template/apis/cluster/null/v1alpha1"
-	features "github.com/crossplane/upjet-provider-template/internal/features"
+	v1alpha1 "github.com/Cliftonz/provider-upjet-posthog/apis/cluster/null/v1alpha1"
+	features "github.com/Cliftonz/provider-upjet-posthog/internal/features"
 )
 
 // SetupWebhookWithManager registers the conversion webhook for Resource.
