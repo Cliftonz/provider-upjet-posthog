@@ -23,7 +23,8 @@ const usage = `usage:
   tracking schema-diff OLD_SCHEMA NEW_SCHEMA
   tracking crd-diff OLD_CRD_DIR NEW_CRD_DIR
   tracking new-resources SCHEMA
-  tracking gate ACKS VERSION breaking-change|new-resource < changes`
+  tracking gate ACKS VERSION breaking-change|new-resource < changes
+  tracking patch-paths PATCH`
 
 func main() {
 	if err := run(os.Args[1:], os.Stdin, os.Stdout); err != nil {
@@ -53,13 +54,12 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 		lines, err = configuredNewResources(args[1])
 	case "gate":
 		return gate(args[1], args[2], args[3], readLines(stdin), stdout)
+	case "patch-paths":
+		lines, err = patchPaths(args[1])
 	default:
 		return errors.New(usage)
 	}
-	if err != nil {
-		return err
-	}
-	return printLines(stdout, lines)
+	return errors.Join(err, printLines(stdout, lines))
 }
 
 func readLines(r io.Reader) []string {
@@ -155,6 +155,18 @@ func configuredNewResources(schemaPath string) ([]string, error) {
 		configured[name] = true
 	}
 	return newResources(schema, configured)
+}
+
+func patchPaths(path string) ([]string, error) {
+	patch, err := os.ReadFile(path) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	bad := disallowedPaths(string(patch))
+	if len(bad) > 0 {
+		err = fmt.Errorf("patch touches %d paths outside the generation allowlist", len(bad))
+	}
+	return bad, err
 }
 
 func gate(acksPath, version, name string, changes []string, stdout io.Writer) error {
