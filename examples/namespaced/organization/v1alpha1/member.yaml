@@ -5,11 +5,11 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: organization/v1alpha1/member
-    e2e.posthog.m.clifton.quest/substitute: POSTHOG_TEST_USER_UUID
+    uptest.upbound.io/update-parameter: '{"level":"admin"}'
 spec:
   forProvider:
     organizationId: "@current"
-    userUuid: ${POSTHOG_TEST_USER_UUID}
+    userUuid: ${data.POSTHOG_TEST_USER_UUID}
     level: member
     retainOnDestroy: true
   providerConfigRef:

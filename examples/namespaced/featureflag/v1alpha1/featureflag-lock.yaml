@@ -5,8 +5,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: featureflag/v1alpha1/featureflag-lock
-    e2e.posthog.m.clifton.quest/toggle-field: spec.forProvider.active
-    e2e.posthog.m.clifton.quest/toggle-note: the e2e runner patches spec.forProvider.active to false after creation to test toggling
+    uptest.upbound.io/post-assert-hook: 'testhooks/lock-toggle.sh'
 spec:
   forProvider:
     key: example-maintenance-lock

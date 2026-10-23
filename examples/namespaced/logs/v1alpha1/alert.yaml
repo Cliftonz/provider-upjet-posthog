@@ -5,6 +5,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: logs/v1alpha1/alert
+    uptest.upbound.io/update-parameter: '{"name":"Checkout API errors updated"}'
 spec:
   forProvider:
     name: Checkout API errors

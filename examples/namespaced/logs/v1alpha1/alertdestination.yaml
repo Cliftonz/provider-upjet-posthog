@@ -5,7 +5,7 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  url: https://example.com/hooks/oncall
+  url: https://example.webhook.office.com/webhookb2/e2e/IncomingWebhook/e2e/e2e
 ---
 apiVersion: logs.posthog.m.clifton.quest/v1alpha1
 kind: AlertDestination
@@ -16,12 +16,37 @@ metadata:
     meta.upbound.io/example-id: logs/v1alpha1/alertdestination
 spec:
   forProvider:
-    type: webhook
+    type: teams
     alertIdRef:
-      name: checkout-errors
+      name: checkout-errors-oncall-alert
     webhookUrlSecretRef:
       name: example-alertdestination-webhook
       key: url
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: logs.posthog.m.clifton.quest/v1alpha1
+kind: Alert
+metadata:
+  name: checkout-errors-oncall-alert
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: logs/v1alpha1/alertdestination
+spec:
+  forProvider:
+    name: Checkout API errors (on-call)
+    severityLevels:
+      - error
+      - fatal
+    serviceNames:
+      - checkout-api
+    thresholdCount: 10
+    thresholdOperator: above
+    windowMinutes: 10
+    evaluationPeriods: 3
+    datapointsToAlarm: 2
+    cooldownMinutes: 30
   providerConfigRef:
     kind: ProviderConfig
     name: default

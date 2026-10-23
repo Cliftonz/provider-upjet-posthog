@@ -5,29 +5,12 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: access/v1alpha1/accesscontrol
+    uptest.upbound.io/update-parameter: '{"accessLevel":"editor"}'
     uptest.upbound.io/timeout: "300"
 spec:
   forProvider:
     resource: survey
     accessLevel: viewer
-  providerConfigRef:
-    kind: ProviderConfig
-    name: default
----
-apiVersion: access.posthog.m.clifton.quest/v1alpha1
-kind: AccessControl
-metadata:
-  name: example-accesscontrol-role
-  namespace: default
-  annotations:
-    meta.upbound.io/example-id: access/v1alpha1/accesscontrol
-    uptest.upbound.io/timeout: "300"
-spec:
-  forProvider:
-    resource: feature_flag
-    accessLevel: editor
-    roleRef:
-      name: example-role
   providerConfigRef:
     kind: ProviderConfig
     name: default

@@ -9,8 +9,22 @@ metadata:
 spec:
   forProvider:
     roleIdRef:
-      name: example-role
-    userUuid: ${POSTHOG_TEST_USER_UUID}
+      name: example-rolemembership-role
+    userUuid: ${data.POSTHOG_TEST_USER_UUID}
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: Role
+metadata:
+  name: example-rolemembership-role
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/rolemembership
+spec:
+  forProvider:
+    name: example-rolemembership-role
   providerConfigRef:
     kind: ProviderConfig
     name: default

@@ -5,6 +5,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/action
+    uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
 spec:
   providerConfigRef:
     kind: ProviderConfig

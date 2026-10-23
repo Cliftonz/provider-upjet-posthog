@@ -20,6 +20,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/alert
+    uptest.upbound.io/update-parameter: '{"name":"example-alert-updated"}'
 spec:
   providerConfigRef:
     kind: ProviderConfig
@@ -28,7 +29,8 @@ spec:
     name: example-alert
     insightRef:
       name: example-alert-insight
-    subscribedUsers: []
+    subscribedUsers:
+      - 1
     conditionType: absolute_value
     thresholdType: absolute
     thresholdUpper: 10000

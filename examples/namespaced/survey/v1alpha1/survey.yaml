@@ -5,6 +5,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: survey/v1alpha1/survey
+    uptest.upbound.io/update-parameter: '{"description":"Updated description."}'
 spec:
   forProvider:
     name: Example NPS

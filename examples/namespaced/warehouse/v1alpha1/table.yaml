@@ -5,8 +5,8 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  accessKey: ${WAREHOUSE_ACCESS_KEY}
-  accessSecret: ${WAREHOUSE_ACCESS_SECRET}
+  accessKey: example-access-key-id
+  accessSecret: example-secret-access-key
 ---
 apiVersion: warehouse.posthog.m.clifton.quest/v1alpha1
 kind: Table
@@ -15,12 +15,12 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: warehouse/v1alpha1/table
-    uptest.upbound.io/timeout: "600"
+    upjet.upbound.io/manual-intervention: "requires a public HTTPS object store holding the files"
 spec:
   forProvider:
     name: orders
     format: Parquet
-    urlPattern: ${WAREHOUSE_URL}/orders/*.parquet
+    urlPattern: https://example-bucket.s3.us-east-1.amazonaws.com/orders/*.parquet
     accessKeySecretRef:
       name: example-warehouse-table-credentials
       key: accessKey

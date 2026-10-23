@@ -3,10 +3,9 @@ kind: Project
 metadata:
   name: example-project
   namespace: default
-  labels:
-    testing.upbound.io/example-name: example-project
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/project
+    uptest.upbound.io/update-parameter: '{"name":"crossplane-e2e-project-updated"}'
     uptest.upbound.io/timeout: "600"
 spec:
   forProvider:

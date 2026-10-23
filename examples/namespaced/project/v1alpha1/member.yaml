@@ -5,11 +5,11 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/member
+    uptest.upbound.io/update-parameter: '{"accessLevel":"admin"}'
 spec:
   forProvider:
-    projectIdSelector:
-      matchLabels:
-        testing.upbound.io/example-name: example-project
+    projectIdRef:
+      name: example-member-project
     organizationMemberRef:
       name: example-projectmember-orgmember
     accessLevel: member
@@ -23,14 +23,27 @@ metadata:
   name: example-projectmember-orgmember
   namespace: default
   annotations:
-    meta.upbound.io/example-id: organization/v1alpha1/member
-    e2e.posthog.m.clifton.quest/substitute: POSTHOG_TEST_USER_UUID
+    meta.upbound.io/example-id: project/v1alpha1/member
 spec:
   forProvider:
     organizationId: "@current"
-    userUuid: ${POSTHOG_TEST_USER_UUID}
+    userUuid: ${data.POSTHOG_TEST_USER_UUID}
     level: member
     retainOnDestroy: true
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Project
+metadata:
+  name: example-member-project
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/member
+spec:
+  forProvider:
+    name: crossplane-e2e-member
   providerConfigRef:
     kind: ProviderConfig
     name: default

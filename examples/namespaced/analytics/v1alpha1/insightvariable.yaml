@@ -5,6 +5,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/insightvariable
+    uptest.upbound.io/update-parameter: '{"name":"example-environment-updated"}'
 spec:
   providerConfigRef:
     kind: ProviderConfig

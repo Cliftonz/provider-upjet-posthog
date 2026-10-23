@@ -5,11 +5,11 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/settings
+    uptest.upbound.io/update-parameter: '{"anonymizeIps":true}'
 spec:
   forProvider:
-    projectIdSelector:
-      matchLabels:
-        testing.upbound.io/example-name: example-project
+    projectIdRef:
+      name: example-settings-project
     heatmapsOptIn: true
     sessionRecordingOptIn: true
     surveysOptIn: true
@@ -23,6 +23,20 @@ spec:
     sessionRecordingNetworkPayloadCaptureConfig:
       recordHeaders: true
       recordBody: false
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Project
+metadata:
+  name: example-settings-project
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/settings
+spec:
+  forProvider:
+    name: crossplane-e2e-settings
   providerConfigRef:
     kind: ProviderConfig
     name: default

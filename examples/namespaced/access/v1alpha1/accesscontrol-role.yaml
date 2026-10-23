@@ -1,0 +1,31 @@
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: AccessControl
+metadata:
+  name: example-accesscontrol-role
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/accesscontrol-role
+    uptest.upbound.io/timeout: "300"
+spec:
+  forProvider:
+    resource: feature_flag
+    accessLevel: editor
+    roleRef:
+      name: example-accesscontrol-target
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: access.posthog.m.clifton.quest/v1alpha1
+kind: Role
+metadata:
+  name: example-accesscontrol-target
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: access/v1alpha1/accesscontrol-role
+spec:
+  forProvider:
+    name: example-accesscontrol-target
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

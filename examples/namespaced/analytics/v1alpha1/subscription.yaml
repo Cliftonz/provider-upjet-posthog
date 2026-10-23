@@ -20,6 +20,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/subscription
+    uptest.upbound.io/update-parameter: '{"title":"example-subscription-updated"}'
 spec:
   providerConfigRef:
     kind: ProviderConfig

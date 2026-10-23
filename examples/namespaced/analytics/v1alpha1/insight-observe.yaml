@@ -5,7 +5,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/insight-observe
-    crossplane.io/external-name: "${OBSERVED_INSIGHT_ID}"
+    uptest.upbound.io/conditions: "Ready,Synced"
+    crossplane.io/external-name: "${data.OBSERVED_INSIGHT_ID}"
 spec:
   managementPolicies: ["Observe"]
   providerConfigRef:

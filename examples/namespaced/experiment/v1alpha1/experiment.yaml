@@ -29,12 +29,15 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: experiment/v1alpha1/experiment
+    uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
     uptest.upbound.io/timeout: "600"
 spec:
   forProvider:
     name: Pricing page test
     description: Does the new pricing layout lift conversion?
-    featureFlagKey: example-pricing-page-test
+    featureFlagKeyRef:
+      name: example-pricing-test
+    allowUnknownEvents: true
     metrics: |
       [{"kind":"ExperimentMetric","metric_type":"mean","name":"Revenue per user","source":{"kind":"EventsNode","event":"purchase","math":"sum"}}]
     exposureCriteria: |

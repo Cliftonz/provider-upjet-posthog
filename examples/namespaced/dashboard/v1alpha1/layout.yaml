@@ -25,6 +25,8 @@ spec:
     name: default
   forProvider:
     name: example-layout-insight
+    dashboardIdsRefs:
+      - name: example-layout-dashboard
     queryJson: '{"kind":"InsightVizNode","source":{"kind":"TrendsQuery","series":[{"kind":"EventsNode","event":"$pageview","math":"total"}]}}'
 ---
 apiVersion: dashboard.posthog.m.clifton.quest/v1alpha1

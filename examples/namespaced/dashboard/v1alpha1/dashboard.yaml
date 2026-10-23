@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: dashboard/v1alpha1/dashboard
+    uptest.upbound.io/post-assert-hook: 'testhooks/dashboard-api.sh'
+    uptest.upbound.io/post-delete-hook: 'testhooks/dashboard-api.sh'
+    uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
 spec:
   providerConfigRef:
     kind: ProviderConfig

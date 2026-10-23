@@ -5,12 +5,26 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/defaultaccess
+    uptest.upbound.io/update-parameter: '{"accessLevel":"none"}'
 spec:
   forProvider:
-    projectIdSelector:
-      matchLabels:
-        testing.upbound.io/example-name: example-project
+    projectIdRef:
+      name: example-defaultaccess-project
     accessLevel: member
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+---
+apiVersion: project.posthog.m.clifton.quest/v1alpha1
+kind: Project
+metadata:
+  name: example-defaultaccess-project
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: project/v1alpha1/defaultaccess
+spec:
+  forProvider:
+    name: crossplane-e2e-defaultaccess
   providerConfigRef:
     kind: ProviderConfig
     name: default
