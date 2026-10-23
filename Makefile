@@ -2,7 +2,7 @@
 # Setup Project
 
 PROJECT_NAME ?= provider-posthog
-PROJECT_REPO ?= github.com/Cliftonz/$(PROJECT_NAME)
+PROJECT_REPO ?= github.com/Cliftonz/provider-upjet-posthog
 
 export TERRAFORM_VERSION ?= 1.5.7
 
@@ -10,12 +10,11 @@ export TERRAFORM_VERSION ?= 1.5.7
 # licensed under BSL, which is not permitted.
 TERRAFORM_VERSION_VALID := $(shell [ "$(TERRAFORM_VERSION)" = "`printf "$(TERRAFORM_VERSION)\n1.6" | sort -V | head -n1`" ] && echo 1 || echo 0)
 
-export TERRAFORM_PROVIDER_SOURCE ?= hashicorp/null
-export TERRAFORM_PROVIDER_REPO ?= https://github.com/hashicorp/terraform-provider-null
-export TERRAFORM_PROVIDER_VERSION ?= 3.2.4
-export TERRAFORM_PROVIDER_DOWNLOAD_NAME ?= terraform-provider-null
-export TERRAFORM_PROVIDER_DOWNLOAD_URL_PREFIX ?= https://releases.hashicorp.com/$(TERRAFORM_PROVIDER_DOWNLOAD_NAME)/$(TERRAFORM_PROVIDER_VERSION)
-export TERRAFORM_NATIVE_PROVIDER_BINARY ?= terraform-provider-null_v3.2.4_x5
+export TERRAFORM_PROVIDER_SOURCE ?= posthog/posthog
+export TERRAFORM_PROVIDER_REPO ?= https://github.com/Cliftonz/terraform-provider-posthog
+export TERRAFORM_PROVIDER_VERSION ?= 1.0.25
+export TERRAFORM_PROVIDER_REF ?= e708a31f117cf7111e700092ccc734def4b29c25
+export TERRAFORM_PROVIDER_MODULE ?= github.com/posthog/terraform-provider
 export TERRAFORM_DOCS_PATH ?= docs/resources
 
 
@@ -44,8 +43,8 @@ NPROCS ?= 1
 # to half the number of CPU cores.
 GO_TEST_PARALLEL := $(shell echo $$(( $(NPROCS) / 2 )))
 
-GO_REQUIRED_VERSION ?= 1.26
-GOLANGCILINT_VERSION ?= 2.13.0
+GO_REQUIRED_VERSION ?= 1.27
+GOLANGCILINT_VERSION ?= 2.14.0
 GO_STATIC_PACKAGES = $(GO_PROJECT)/cmd/provider $(GO_PROJECT)/cmd/generator
 GO_LDFLAGS += -X $(GO_PROJECT)/internal/version.Version=$(VERSION)
 GO_SUBDIRS += cmd internal apis
@@ -65,17 +64,15 @@ CROSSPLANE_VERSION = 2.2.1
 # ====================================================================================
 # Setup Images
 
-REGISTRY_ORGS ?= ghcr.io/crossplane-contrib
+REGISTRY_ORGS ?= xpkg.upbound.io/cliftonz
 IMAGES = $(PROJECT_NAME)
 -include build/makelib/imagelight.mk
 
 # ====================================================================================
 # Setup XPKG
 
-XPKG_REG_ORGS ?= ghcr.io/crossplane-contrib
-# NOTE(hasheddan): skip promoting on xpkg.crossplane.io as channel tags are
-# inferred.
-XPKG_REG_ORGS_NO_PROMOTE ?= ghcr.io/crossplane-contrib
+XPKG_REG_ORGS ?= xpkg.upbound.io/cliftonz
+XPKG_REG_ORGS_NO_PROMOTE ?= xpkg.upbound.io/cliftonz
 XPKGS = $(PROJECT_NAME)
 -include build/makelib/xpkg.mk
 
@@ -123,18 +120,23 @@ $(TERRAFORM): check-terraform-version
 
 $(TERRAFORM_PROVIDER_SCHEMA): $(TERRAFORM)
 	@$(INFO) generating provider schema for $(TERRAFORM_PROVIDER_SOURCE) $(TERRAFORM_PROVIDER_VERSION)
-	@mkdir -p $(TERRAFORM_WORKDIR)
-	@echo '{"terraform":[{"required_providers":[{"provider":{"source":"'"$(TERRAFORM_PROVIDER_SOURCE)"'","version":"'"$(TERRAFORM_PROVIDER_VERSION)"'"}}],"required_version":"'"$(TERRAFORM_VERSION)"'"}]}' > $(TERRAFORM_WORKDIR)/main.tf.json
-	@$(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) init > $(TERRAFORM_WORKDIR)/terraform-logs.txt 2>&1
-	@$(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) providers schema -json=true > $(TERRAFORM_PROVIDER_SCHEMA) 2>> $(TERRAFORM_WORKDIR)/terraform-logs.txt
+	@rm -rf $(TERRAFORM_WORKDIR)
+	@mkdir -p $(TERRAFORM_WORKDIR)/bin
+	@$(GO) build -o $(TERRAFORM_WORKDIR)/bin/terraform-provider-posthog $(TERRAFORM_PROVIDER_MODULE)
+	@printf 'provider_installation {\n  dev_overrides {\n    "registry.terraform.io/%s" = "%s"\n  }\n  direct {}\n}\n' "$(TERRAFORM_PROVIDER_SOURCE)" "$(abspath $(TERRAFORM_WORKDIR)/bin)" > $(TERRAFORM_WORKDIR)/terraformrc
+	@echo '{"terraform":[{"required_providers":[{"posthog":{"source":"'"$(TERRAFORM_PROVIDER_SOURCE)"'"}}],"required_version":"'"$(TERRAFORM_VERSION)"'"}]}' > $(TERRAFORM_WORKDIR)/main.tf.json
+	@TF_CLI_CONFIG_FILE=$(abspath $(TERRAFORM_WORKDIR)/terraformrc) $(TERRAFORM) -chdir=$(TERRAFORM_WORKDIR) providers schema -json=true > $(TERRAFORM_PROVIDER_SCHEMA) 2> $(TERRAFORM_WORKDIR)/terraform-logs.txt
 	@$(OK) generating provider schema for $(TERRAFORM_PROVIDER_SOURCE) $(TERRAFORM_PROVIDER_VERSION)
 
 pull-docs:
 	@if [ ! -d "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" ]; then \
-  		mkdir -p "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" && \
-		git clone -c advice.detachedHead=false --depth 1 --filter=blob:none --branch "v$(TERRAFORM_PROVIDER_VERSION)" --sparse "$(TERRAFORM_PROVIDER_REPO)" "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)"; \
+		mkdir -p "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" && \
+		git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" init -q && \
+		git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" remote add origin "$(TERRAFORM_PROVIDER_REPO)" && \
+		git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" sparse-checkout set "$(TERRAFORM_DOCS_PATH)"; \
 	fi
-	@git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" sparse-checkout set "$(TERRAFORM_DOCS_PATH)"
+	@git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" fetch -q --depth 1 --filter=blob:none origin "$(TERRAFORM_PROVIDER_REF)"
+	@git -C "$(WORK_DIR)/$(TERRAFORM_PROVIDER_SOURCE)" -c advice.detachedHead=false checkout -q FETCH_HEAD
 
 generate.init: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs
 

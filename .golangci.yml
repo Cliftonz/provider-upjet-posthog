@@ -105,6 +105,9 @@ linters:
       - linters:
           - gosec
         text: 'G104:'
+      - linters:
+          - goconst
+        path: ^config/
     paths:
       - zz_\..+\.go$
       - third_party$
