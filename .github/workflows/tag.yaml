@@ -1,18 +1,64 @@
+# SPDX-FileCopyrightText: 2026 The provider-upjet-posthog authors
+#
+# SPDX-License-Identifier: MPL-2.0
+
 name: Tag
 
 on:
-  workflow_dispatch: 
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. v0.1.0)'
+        description: 'Upstream version without the leading v (e.g. 1.0.25)'
         required: true
-      message:
-        description: 'Tag message'
+      sha:
+        description: 'Commit on main to tag'
         required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPO: PostHog/terraform-provider-posthog
 
 jobs:
   tag:
-    uses: crossplane-contrib/provider-workflows/.github/workflows/tag.yml@451c4dc6ad3691b0a702a997a0ac24e8bbc8bbaa # main
-    with:
-      version: ${{ github.event.inputs.version }}
-      message: ${{ github.event.inputs.message }}
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'upstream/v')
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ inputs.version || github.event.pull_request.head.ref }}
+      SHA: ${{ inputs.sha || github.event.pull_request.merge_commit_sha }}
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app.outputs.token }}
+      - name: Normalize version
+        run: |
+          version=${VERSION#upstream/}
+          echo "VERSION=${version#v}" >> "$GITHUB_ENV"
+      - name: Create tag
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: hack/tag.sh "$VERSION" "$SHA"
+      - name: Dispatch publish
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: gh workflow run publish-provider-package.yml -f version="$VERSION"
+      - name: Open failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: hack/failure-issue.sh "$VERSION" tag release

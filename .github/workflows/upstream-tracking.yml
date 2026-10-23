@@ -1,0 +1,156 @@
+# SPDX-FileCopyrightText: 2026 The provider-upjet-posthog authors
+#
+# SPDX-License-Identifier: MPL-2.0
+
+name: Upstream Tracking
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: upstream-tracking
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPO: PostHog/terraform-provider-posthog
+  FORK_REPO: Cliftonz/terraform-provider-posthog
+
+jobs:
+  track:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: Cliftonz
+          repositories: provider-upjet-posthog,terraform-provider-posthog
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          token: ${{ steps.app.outputs.token }}
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+      - name: Configure git identity
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          SLUG: ${{ steps.app.outputs.app-slug }}
+        run: |
+          id=$(gh api "/users/${SLUG}%5Bbot%5D" --jq .id)
+          git config --global user.name "${SLUG}[bot]"
+          git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
+      - name: Build tracking tool
+        run: go build -o "$RUNNER_TEMP/tracking" ./cmd/tracking
+      - name: Close skipped PRs
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          for v in $("$RUNNER_TEMP/tracking" skips hack/upstream-acks.yaml); do
+            gh pr list --head "upstream/v${v}" --state open --json number --jq '.[].number' |
+              xargs -r -I{} gh pr close {} --comment "Skipped in hack/upstream-acks.yaml."
+          done
+      - name: Detect oldest pending version
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          gh api "repos/${UPSTREAM_REPO}/releases" --paginate > "$RUNNER_TEMP/upstream.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate > "$RUNNER_TEMP/ours.json"
+          version=$("$RUNNER_TEMP/tracking" pending hack/upstream-acks.yaml "$RUNNER_TEMP/upstream.json" "$RUNNER_TEMP/ours.json")
+          echo "UPSTREAM_VERSION=${version}" >> "$GITHUB_ENV"
+      - name: Read PR state
+        if: env.UPSTREAM_VERSION != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          echo "release|pull request state" > "$RUNNER_TEMP/step"
+          gh pr list --head "upstream/v${UPSTREAM_VERSION}" --state all --limit 1 --json state,mergeCommit \
+            --jq 'if length == 0 then "PR_STATE=none" else "PR_STATE=\(.[0].state | ascii_downcase)\nMERGE_SHA=\(.[0].mergeCommit.oid // "")" end' \
+            >> "$GITHUB_ENV"
+
+      - name: Dispatch tag for merged PR
+        if: env.PR_STATE == 'merged'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          echo "release|tag dispatch" > "$RUNNER_TEMP/step"
+          gh workflow run tag.yaml -f version="$UPSTREAM_VERSION" -f sha="$MERGE_SHA"
+      - name: Report closed PR
+        if: env.PR_STATE == 'closed'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: hack/failure-issue.sh "$UPSTREAM_VERSION" "pull request closed unmerged" release
+
+      - name: Find fork tag
+        if: env.PR_STATE == 'none'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          echo "fork-rebase|fork" > "$RUNNER_TEMP/step"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${FORK_REPO}.git" "$RUNNER_TEMP/fork"
+          tag=$(git -C "$RUNNER_TEMP/fork" ls-remote --tags origin | "$RUNNER_TEMP/tracking" fork-tag "$UPSTREAM_VERSION")
+          echo "FORK_TAG=${tag}" >> "$GITHUB_ENV"
+      - name: Check existing fork tag
+        if: env.PR_STATE == 'none' && env.FORK_TAG != ''
+        run: |
+          echo "fork-fix|fork check" > "$RUNNER_TEMP/step"
+          git -C "$RUNNER_TEMP/fork" -c advice.detachedHead=false checkout "$FORK_TAG"
+          hack/fork-checks.sh "$RUNNER_TEMP/fork"
+      - name: Rebase fork
+        if: env.PR_STATE == 'none' && env.FORK_TAG == ''
+        run: |
+          echo "fork-rebase|fork rebase" > "$RUNNER_TEMP/step"
+          hack/fork-rebase.sh "$UPSTREAM_VERSION" "$RUNNER_TEMP/fork"
+          echo "FORK_TAG=v${UPSTREAM_VERSION}-public" >> "$GITHUB_ENV"
+      - name: Bump pins
+        if: env.PR_STATE == 'none'
+        run: |
+          echo "build|bump" > "$RUNNER_TEMP/step"
+          hack/bump.sh "$UPSTREAM_VERSION" "$FORK_TAG" "$RUNNER_TEMP/fork"
+      - name: Regenerate
+        if: env.PR_STATE == 'none'
+        run: |
+          echo "generation|generation" > "$RUNNER_TEMP/step"
+          make generate
+      - name: Build
+        if: env.PR_STATE == 'none'
+        run: |
+          echo "build|build" > "$RUNNER_TEMP/step"
+          make -j2 build
+      - name: Breaking-change gate
+        if: env.PR_STATE == 'none'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          echo "breaking-change|breaking-change gate" > "$RUNNER_TEMP/step"
+          hack/breaking-changes.sh all | tee "$RUNNER_TEMP/affected"
+      - name: New-resource gate
+        if: env.PR_STATE == 'none'
+        run: |
+          echo "new-resource|new-resource gate" > "$RUNNER_TEMP/step"
+          go run ./cmd/tracking new-resources config/schema.json |
+            "$RUNNER_TEMP/tracking" gate hack/upstream-acks.yaml "$UPSTREAM_VERSION" new-resource |
+            tee "$RUNNER_TEMP/affected"
+      - name: Open PR
+        if: env.PR_STATE == 'none'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          echo "release|pull request" > "$RUNNER_TEMP/step"
+          hack/open-pr.sh "$UPSTREAM_VERSION"
+
+      - name: Open failure issue
+        if: failure() && env.UPSTREAM_VERSION != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          IFS='|' read -r label step < "$RUNNER_TEMP/step"
+          hack/failure-issue.sh "$UPSTREAM_VERSION" "$step" "$label" "$RUNNER_TEMP/affected"
