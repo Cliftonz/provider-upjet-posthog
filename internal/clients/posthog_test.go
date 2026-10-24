@@ -39,6 +39,10 @@ func TestProviderConfiguration(t *testing.T) {
 			credentials: `{"host":"https://eu.posthog.com"}`,
 			wantErr:     "missing api_key",
 		},
+		"NonStringValue": {
+			credentials: `{"api_key":"phx_k","project_id":12345}`,
+			wantErr:     "project_id",
+		},
 		"EmptyAPIKey": {
 			credentials: `{"api_key":""}`,
 			wantErr:     "missing api_key",

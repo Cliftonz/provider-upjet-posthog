@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	errNoProviderConfig   = "no providerConfigRef provided"
 	errGetProviderConfig  = "cannot get referenced ProviderConfig"
 	errTrackUsage         = "cannot track ProviderConfig usage"
 	errExtractCredentials = "cannot extract credentials"
@@ -72,10 +71,6 @@ func providerConfiguration(data []byte) (terraform.ProviderConfiguration, error)
 
 func resolveProviderConfig(ctx context.Context, c client.Client, mg resource.ModernManaged) (*v1beta1.ProviderConfigSpec, error) {
 	configRef := mg.GetProviderConfigReference()
-	if configRef == nil {
-		return nil, errors.New(errNoProviderConfig)
-	}
-
 	pcRuntimeObj, err := c.Scheme().New(v1beta1.SchemeGroupVersion.WithKind(configRef.Kind))
 	if err != nil {
 		return nil, errors.Wrap(err, "unknown GVK for ProviderConfig")
