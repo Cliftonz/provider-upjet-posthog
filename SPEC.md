@@ -218,6 +218,8 @@ Manual steps by the human:
 5. Request review in `#upbound` on Crossplane Slack with the repo URL, account, and repository name (unverified against Upbound docs).
 6. After approval, `up repository update provider-posthog --publish` (up v0.39.0 or later).
 
+Until the App and Upbound secrets exist, a `gate` job makes the upstream tracking, tag and publish workflows skip with a `::notice::` naming the missing secrets, and the CI and e2e report jobs skip opening failure issues with a notice.
+
 `package/crossplane.yaml`:
 
 ```yaml

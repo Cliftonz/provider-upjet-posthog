@@ -24,7 +24,31 @@ env:
   PACKAGE: xpkg.upbound.io/cliftonz/provider-posthog
 
 jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
+          XPKG_TOKEN: ${{ secrets.XPKG_TOKEN }}
+        run: |
+          missing=""
+          for name in APP_CLIENT_ID APP_PRIVATE_KEY XPKG_ACCESS_ID XPKG_TOKEN; do
+            [ -n "${!name}" ] || missing="${missing} ${name}"
+          done
+          if [ -z "$missing" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipped: repository secrets not configured:${missing}. See SPEC.md section 12 (one-time setup)."
+          fi
+
   package:
+    needs: gate
+    if: needs.gate.outputs.configured == 'true'
     runs-on: ubuntu-24.04
     env:
       TAG: v${{ inputs.version }}

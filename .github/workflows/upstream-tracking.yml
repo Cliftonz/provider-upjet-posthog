@@ -21,7 +21,29 @@ env:
   FORK_REPO: Cliftonz/terraform-provider-posthog
 
 jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          missing=""
+          for name in APP_CLIENT_ID APP_PRIVATE_KEY; do
+            [ -n "${!name}" ] || missing="${missing} ${name}"
+          done
+          if [ -z "$missing" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipped: repository secrets not configured:${missing}. See SPEC.md section 12 (one-time setup)."
+          fi
+
   detect:
+    needs: gate
+    if: needs.gate.outputs.configured == 'true'
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.pending.outputs.version }}
