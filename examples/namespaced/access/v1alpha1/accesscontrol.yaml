@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: access/v1alpha1/accesscontrol
+    uptest.upbound.io/post-assert-hook: 'testhooks/accesscontrol-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/accesscontrol-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/accesscontrol-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"accessLevel":"editor"}'
     uptest.upbound.io/timeout: "300"
 spec:

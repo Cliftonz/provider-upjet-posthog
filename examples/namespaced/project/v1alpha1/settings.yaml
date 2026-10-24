@@ -5,6 +5,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/settings
+    uptest.upbound.io/post-assert-hook: 'testhooks/settings-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/settings-api.sh updated || exit 1'
     uptest.upbound.io/update-parameter: '{"anonymizeIps":true}'
 spec:
   forProvider:

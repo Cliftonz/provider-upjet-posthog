@@ -4,4 +4,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 . "$(dirname "$0")/../../../testhooks/posthog.sh"
-assert_lifecycle dashboard.dashboard.posthog.m.clifton.quest/example-dashboard "projects/$POSTHOG_PROJECT_ID/dashboards"
+MR=dashboard.dashboard.posthog.m.clifton.quest/example-dashboard
+object() {
+  get "projects/$POSTHOG_PROJECT_ID/dashboards/$(at id)/"
+}
+UPDATED='.description == "Updated description"'
+assert_api "$@"

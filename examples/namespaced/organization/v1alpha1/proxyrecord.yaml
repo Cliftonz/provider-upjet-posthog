@@ -5,6 +5,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: organization/v1alpha1/proxyrecord
+    uptest.upbound.io/post-assert-hook: 'testhooks/proxyrecord-api.sh'
+    uptest.upbound.io/post-delete-hook: 'testhooks/proxyrecord-api.sh deleted || exit 1'
     uptest.upbound.io/timeout: "600"
 spec:
   forProvider:

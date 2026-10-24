@@ -5,29 +5,45 @@
 
 set -euo pipefail
 
+state="${TMPDIR:-/tmp}/posthog-e2e-$(basename "$0" .sh).json"
+CREATED='. != null'
+DELETED='. == null'
+
 api() {
   curl -fsS -H "Authorization: Bearer $POSTHOG_API_KEY" "$POSTHOG_HOST/api/$1"
 }
 
-api_state() {
+at() {
+  jq -r ".$1" "$state"
+}
+
+get() {
   local response status
   response="$(curl -sS -w '\n%{http_code}' -H "Authorization: Bearer $POSTHOG_API_KEY" "$POSTHOG_HOST/api/$1")"
   status="${response##*$'\n'}"
-  if [ "$status" = 404 ] || jq -e ".deleted == true" <<< "${response%$'\n'*}" >/dev/null; then
-    echo gone
+  if [ "$status" = 404 ]; then
+    echo null
   else
-    echo "$status"
+    test "$status" = 200
+    jq --argjson at "$(cat "$state")" "first(${2:-.} | select(.deleted != true)) // null" <<< "${response%$'\n'*}"
   fi
 }
 
-assert_lifecycle() {
-  local mr="$1" collection="$2" idfile="${TMPDIR:-/tmp}/posthog-e2e-${1##*/}"
-  if [ "$(${KUBECTL} -n default get "$mr" --ignore-not-found -o jsonpath="{.metadata.name}/{.metadata.deletionTimestamp}")" = "${mr##*/}/" ]; then
-    ${KUBECTL} -n default get "$mr" -o jsonpath="{.status.atProvider.id}" > "$idfile"
-    test -s "$idfile"
-    test "$(api_state "$collection/$(cat "$idfile")/")" = 200
-  else
-    ${KUBECTL} -n default wait --for=delete "$mr" --timeout=5m
-    test "$(api_state "$collection/$(cat "$idfile")/")" = gone
-  fi
+assert_api() {
+  case "${1:-created}" in
+    created)
+      ${KUBECTL} -n default get "$MR" -o json | jq .status.atProvider > "$state"
+      jq -e '.id | length > 0' "$state"
+      object | jq -e "$CREATED"
+      ;;
+    updated)
+      object | jq -e "$UPDATED"
+      ;;
+    deleted)
+      ${KUBECTL} -n default wait --for=delete "$MR" --timeout=5m
+      until object | jq -e "$DELETED"; do
+        sleep 5
+      done
+      ;;
+  esac
 }

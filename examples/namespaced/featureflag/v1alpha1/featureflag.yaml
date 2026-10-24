@@ -6,7 +6,8 @@ metadata:
   annotations:
     meta.upbound.io/example-id: featureflag/v1alpha1/featureflag
     uptest.upbound.io/post-assert-hook: 'testhooks/featureflag-api.sh'
-    uptest.upbound.io/post-delete-hook: 'testhooks/featureflag-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/featureflag-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/featureflag-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"name":"Example boolean flag updated"}'
 spec:
   forProvider:

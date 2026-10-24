@@ -5,6 +5,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: access/v1alpha1/rolemembership
+    uptest.upbound.io/post-assert-hook: 'testhooks/rolemembership-api.sh'
+    uptest.upbound.io/post-delete-hook: 'testhooks/rolemembership-api.sh deleted || exit 1'
     uptest.upbound.io/timeout: "300"
 spec:
   forProvider:

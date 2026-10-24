@@ -36,6 +36,7 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: dashboard/v1alpha1/layout
+    uptest.upbound.io/post-assert-hook: 'testhooks/layout-api.sh'
 spec:
   providerConfigRef:
     kind: ProviderConfig

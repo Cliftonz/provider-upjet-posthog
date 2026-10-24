@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: cdp/v1alpha1/hogfunction
+    uptest.upbound.io/post-assert-hook: 'testhooks/hogfunction-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/hogfunction-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/hogfunction-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
 spec:
   forProvider:

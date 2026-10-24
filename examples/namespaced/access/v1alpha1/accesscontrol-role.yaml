@@ -5,6 +5,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: access/v1alpha1/accesscontrol-role
+    uptest.upbound.io/post-assert-hook: 'testhooks/accesscontrol-role-api.sh'
+    uptest.upbound.io/post-delete-hook: 'testhooks/accesscontrol-role-api.sh deleted || exit 1'
     uptest.upbound.io/timeout: "300"
 spec:
   forProvider:

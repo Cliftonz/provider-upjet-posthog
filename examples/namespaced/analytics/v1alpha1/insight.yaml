@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/insight
+    uptest.upbound.io/post-assert-hook: 'testhooks/insight-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/insight-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/insight-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"name":"example-insight-updated"}'
 spec:
   providerConfigRef:

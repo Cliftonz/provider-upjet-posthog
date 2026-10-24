@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: survey/v1alpha1/survey
+    uptest.upbound.io/post-assert-hook: 'testhooks/survey-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/survey-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/survey-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"description":"Updated description."}'
 spec:
   forProvider:

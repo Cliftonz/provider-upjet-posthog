@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: logs/v1alpha1/alert
+    uptest.upbound.io/post-assert-hook: 'testhooks/alert-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/alert-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/alert-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"name":"Checkout API errors updated"}'
 spec:
   forProvider:

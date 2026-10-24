@@ -4,4 +4,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 . "$(dirname "$0")/../../../testhooks/posthog.sh"
-assert_lifecycle role.access.posthog.m.clifton.quest/example-role "organizations/$POSTHOG_ORGANIZATION_ID/roles"
+MR=role.access.posthog.m.clifton.quest/example-role
+object() {
+  get "organizations/$POSTHOG_ORGANIZATION_ID/roles/$(at id)/"
+}
+UPDATED='.name == "example-role-updated"'
+assert_api "$@"

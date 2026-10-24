@@ -6,7 +6,8 @@ metadata:
   annotations:
     meta.upbound.io/example-id: access/v1alpha1/role
     uptest.upbound.io/post-assert-hook: 'testhooks/role-api.sh'
-    uptest.upbound.io/post-delete-hook: 'testhooks/role-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/role-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/role-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"name":"example-role-updated"}'
     uptest.upbound.io/timeout: "300"
 spec:

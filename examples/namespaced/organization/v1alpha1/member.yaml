@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: organization/v1alpha1/member
+    uptest.upbound.io/post-assert-hook: 'testhooks/member-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/member-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/member-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"level":"admin"}'
 spec:
   forProvider:

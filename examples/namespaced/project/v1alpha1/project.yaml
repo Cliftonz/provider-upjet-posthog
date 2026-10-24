@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/project
+    uptest.upbound.io/post-assert-hook: 'testhooks/project-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/project-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/project-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"name":"crossplane-e2e-project-updated"}'
     uptest.upbound.io/timeout: "600"
 spec:

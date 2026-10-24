@@ -5,6 +5,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: analytics/v1alpha1/insightvariable
+    uptest.upbound.io/post-assert-hook: 'testhooks/insightvariable-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/insightvariable-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/insightvariable-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"name":"example-environment-updated"}'
 spec:
   providerConfigRef:

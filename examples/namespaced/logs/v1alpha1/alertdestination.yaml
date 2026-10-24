@@ -14,6 +14,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: logs/v1alpha1/alertdestination
+    uptest.upbound.io/post-assert-hook: 'testhooks/alertdestination-api.sh'
+    uptest.upbound.io/post-delete-hook: 'testhooks/alertdestination-api.sh deleted || exit 1'
 spec:
   forProvider:
     type: teams

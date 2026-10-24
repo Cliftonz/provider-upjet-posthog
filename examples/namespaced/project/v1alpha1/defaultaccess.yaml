@@ -5,6 +5,8 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: project/v1alpha1/defaultaccess
+    uptest.upbound.io/post-assert-hook: 'testhooks/defaultaccess-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/defaultaccess-api.sh updated || exit 1'
     uptest.upbound.io/update-parameter: '{"accessLevel":"none"}'
 spec:
   forProvider:

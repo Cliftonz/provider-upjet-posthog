@@ -29,6 +29,9 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: experiment/v1alpha1/experiment
+    uptest.upbound.io/post-assert-hook: 'testhooks/experiment-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/experiment-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/experiment-api.sh deleted || exit 1'
     uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
     uptest.upbound.io/timeout: "600"
 spec:
