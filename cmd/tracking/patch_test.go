@@ -50,6 +50,11 @@ func TestDisallowedPaths(t *testing.T) {
 		{"renames check both paths", "diff --git a/apis/x.go b/hack/x.go\nsimilarity index 100%\nrename from apis/x.go\nrename to hack/x.go\n", []string{"hack/x.go"}},
 		{"other Makefile hunks are rejected", diff("Makefile", pinHunk+"@@ -40 +40 @@\n-build: x\n+build: y\n"), []string{"Makefile"}},
 		{"a removed Makefile line starting with dashes is checked", diff("Makefile", "@@ -40 +40 @@\n--- comment\n+export TERRAFORM_PROVIDER_REF ?= x\n"), []string{"Makefile"}},
+		{"a pin value with a make expansion is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_REF ?= x\n+export TERRAFORM_PROVIDER_REF ?= $(shell id)\n"), []string{"Makefile"}},
+		{"a pin value with a space is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_REF ?= x\n+export TERRAFORM_PROVIDER_REF ?= x y\n"), []string{"Makefile"}},
+		{"a pin value with quotes is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= \"1.0.26\"\n"), []string{"Makefile"}},
+		{"an empty pin value is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= \n"), []string{"Makefile"}},
+		{"a pin value with semver suffixes passes", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= 1.0.26-rc.1+build_2\n"), nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

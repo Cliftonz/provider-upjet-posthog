@@ -13,7 +13,7 @@ import (
 var (
 	allowedDirs  = []string{"apis/", "internal/controller/", "package/crds/", "examples-generated/"}
 	allowedFiles = []string{"config/schema.json", "config/provider-metadata.yaml", "go.mod", "go.sum", "Makefile"}
-	pinLine      = regexp.MustCompile(`^[+-]export TERRAFORM_PROVIDER_(VERSION|REF) \?= `)
+	pinLine      = regexp.MustCompile(`^[+-]export TERRAFORM_PROVIDER_(VERSION|REF) \?= [A-Za-z0-9._+-]+$`)
 )
 
 func allowedPath(p string) bool {
