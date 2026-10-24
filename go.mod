@@ -163,4 +163,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/posthog/terraform-provider => github.com/Cliftonz/terraform-provider-posthog v1.0.26-0.20261024005659-904aeb777d4f
+replace github.com/posthog/terraform-provider => github.com/Cliftonz/terraform-provider-posthog v1.0.26-0.20261024053753-0b28ce5bce5f
