@@ -47,13 +47,6 @@ import (
 	"github.com/Cliftonz/provider-upjet-posthog/internal/version"
 )
 
-const (
-	webhookTLSCertDirEnvVar = "WEBHOOK_TLS_CERT_DIR"
-	tlsServerCertDirEnvVar  = "TLS_SERVER_CERTS_DIR"
-	certsDirEnvVar          = "CERTS_DIR"
-	tlsServerCertDir        = "/tls/server"
-)
-
 func main() {
 	var (
 		app                     = kingpin.New(filepath.Base(os.Args[0]), "Terraform based Crossplane provider for PostHog").DefaultEnvars()
@@ -71,14 +64,7 @@ func main() {
 		enableManagementPolicies = app.Flag("enable-management-policies", "Enable support for Management Policies.").Default("true").Envar("ENABLE_MANAGEMENT_POLICIES").Bool()
 		enableChangeLogs         = app.Flag("enable-changelogs", "Enable support for capturing change logs during reconciliation.").Default("false").Envar("ENABLE_CHANGE_LOGS").Bool()
 		enableSecretCache        = app.Flag("enable-secret-cache", "Enable caching of Secret objects. When true, Secrets are served from the informer cache instead of direct API calls. This reduces API server load but increases memory usage.").Default("true").Envar("ENABLE_SECRET_CACHE").Bool()
-
-		certsDirSet = false
-		// we record whether the command-line option "--certs-dir" was supplied
-		// in the registered PreAction for the flag.
-		certsDir = app.Flag("certs-dir", "The directory that contains the server key and certificate.").Default(tlsServerCertDir).Envar(certsDirEnvVar).PreAction(func(_ *kingpin.ParseContext) error {
-			certsDirSet = true
-			return nil
-		}).String()
+		certsDir                 = app.Flag("certs-dir", "The directory that contains the server key and certificate.").Default("/tls/server").Envar("TLS_SERVER_CERTS_DIR").String()
 	)
 
 	kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -86,9 +72,6 @@ func main() {
 	zl := zap.New(zap.UseDevMode(*debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-posthog"))
 	if *debug {
-		// The controller-runtime runs with a no-op logger by default. It is
-		// *very* verbose even at info level, so we only provide it a real
-		// logger when we're running in debug mode.
 		ctrl.SetLogger(zl)
 	}
 
@@ -97,33 +80,8 @@ func main() {
 	cfg, err := ctrl.GetConfig()
 	kingpin.FatalIfError(err, "Cannot get API server rest config")
 
-	// Get the TLS certs directory from the environment variables set by
-	// Crossplane if they're available.
-	// In older XP versions we used WEBHOOK_TLS_CERT_DIR, in newer versions
-	// we use TLS_SERVER_CERTS_DIR. If an explicit certs dir is not supplied
-	// via the command-line options, then these environment variables are used
-	// instead.
-	if !certsDirSet {
-		// backwards-compatibility concerns
-		xpCertsDir := os.Getenv(certsDirEnvVar)
-		if xpCertsDir == "" {
-			xpCertsDir = os.Getenv(tlsServerCertDirEnvVar)
-		}
-		if xpCertsDir == "" {
-			xpCertsDir = os.Getenv(webhookTLSCertDirEnvVar)
-		}
-		// we probably don't need this condition but just to be on the
-		// safe side, if we are missing any kingpin machinery details...
-		if xpCertsDir != "" {
-			*certsDir = xpCertsDir
-		}
-	}
-
 	var clientOpts client.Options
 	if !*enableSecretCache {
-		// When secret caching is disabled (default), configure the
-		// client to bypass the cache for Secret objects. This means
-		// Get/List calls for Secrets will go directly to the API server.
 		clientOpts = client.Options{
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{&corev1.Secret{}},
@@ -136,6 +94,7 @@ func main() {
 	kingpin.FatalIfError(resolverapis.BuildScheme(apisNamespaced.AddToSchemes), "Cannot register PostHog APIs with the reference resolver scheme")
 	kingpin.FatalIfError(apisNamespaced.AddToScheme(scheme), "Cannot add namespace-scoped PostHog APIs to scheme")
 	kingpin.FatalIfError(apiextensionsv1.AddToScheme(scheme), "Cannot add CustomResourceDefinition to scheme")
+	kingpin.FatalIfError(authv1.AddToScheme(scheme), "Cannot add k8s authorization APIs to scheme")
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:           scheme,
@@ -163,9 +122,6 @@ func main() {
 		RenewDeadline:              func() *time.Duration { d := 50 * time.Second; return &d }(),
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
-	kingpin.FatalIfError(apisNamespaced.AddToScheme(mgr.GetScheme()), "Cannot add namespaced PostHog APIs to scheme")
-	kingpin.FatalIfError(apiextensionsv1.AddToScheme(mgr.GetScheme()), "Cannot add api-extensions APIs to scheme")
-	kingpin.FatalIfError(authv1.AddToScheme(mgr.GetScheme()), "Cannot add k8s authorization APIs to scheme")
 
 	metricRecorder := managed.NewMRMetricRecorder()
 	stateMetrics := statemetrics.NewMRStateMetrics()
@@ -232,9 +188,6 @@ func main() {
 }
 
 func canWatchCRD(ctx context.Context, mgr manager.Manager) (bool, error) {
-	if err := authv1.AddToScheme(mgr.GetScheme()); err != nil {
-		return false, err
-	}
 	verbs := []string{"get", "list", "watch"}
 	for _, verb := range verbs {
 		sar := &authv1.SelfSubjectAccessReview{
@@ -247,7 +200,7 @@ func canWatchCRD(ctx context.Context, mgr manager.Manager) (bool, error) {
 			},
 		}
 		if err := mgr.GetClient().Create(ctx, sar); err != nil {
-			return false, errors.Wrapf(err, "unable to perform RBAC check for verb %s on CustomResourceDefinitions", verbs)
+			return false, errors.Wrapf(err, "unable to perform RBAC check for verb %s on CustomResourceDefinitions", verb)
 		}
 		if !sar.Status.Allowed {
 			return false, nil
