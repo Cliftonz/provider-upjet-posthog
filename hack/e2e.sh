@@ -26,16 +26,86 @@ OBSERVED_ROLE_ID: "$observed_role_id"
 OBSERVED_INSIGHT_ID: "$observed_insight_id"
 EOF
 
-UPTEST_CLOUD_CREDENTIALS="$(jq -n --arg api_key "$POSTHOG_API_KEY" --arg host "$POSTHOG_CLUSTER_HOST" \
+CLUSTER="${E2E_CLUSTER:-posthog-e2e}"
+LANES=("$CLUSTER" "$CLUSTER-lane1" "$CLUSTER-lane2")
+UPTEST_CLOUD_CREDENTIALS="$(jq -n --arg api_key "$POSTHOG_API_KEY" --arg host "http://$CLUSTER-control-plane:30800" \
   --arg organization_id "$POSTHOG_ORGANIZATION_ID" --arg project_id "$POSTHOG_PROJECT_ID" \
   '{$api_key, $host, $organization_id, $project_id}')"
 export UPTEST_CLOUD_CREDENTIALS
 export UPTEST_DATASOURCE_PATH="$PWD/_output/e2e-datasource.yaml"
 
-make local-deploy PLATFORMS=linux_amd64 KIND_CLUSTER_NAME=posthog-e2e \
-  CROSSPLANE_VERSION="$(sed -n 's/^ *version: ">=v\(.*\)"$/\1/p' package/crossplane.yaml)"
-kubectl -n crossplane-system delete pod -l pkg.crossplane.io/provider=provider-posthog
-kubectl -n crossplane-system wait --for=condition=Available deployment --all --timeout=5m
-for example in $(find examples/namespaced -path '*/v1alpha1/*.yaml' | sort | xargs grep -L upjet.upbound.io/manual-intervention); do
-  make uptest UPTEST_EXAMPLE_LIST="$example"
+start=$SECONDS
+phase() {
+  echo "e2e-timing $1 $((SECONDS - start))s"
+  start=$SECONDS
+}
+
+mkdir -p _output/lanes
+pids=()
+for lane in "${LANES[@]}"; do
+  if ! kind get clusters | grep -x "$lane" > /dev/null; then
+    kind create cluster --name "$lane" --image "$(sed -n 's/^KIND_NODE_IMAGE=//p' test/harness/images.env)" --kubeconfig "_output/lanes/$lane.kubeconfig" &
+    pids+=($!)
+  fi
 done
+
+hash="$(find apis config internal cmd/provider package cluster/images go.mod go.sum -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)"
+rebuilt=false
+if [ ! -f _output/e2e-provider.sha256 ] || [ "$(cat _output/e2e-provider.sha256)" != "$hash" ]; then
+  rebuilt=true
+  rm -rf _output/xpkg
+  make build PLATFORMS=linux_amd64
+  echo "$hash" > _output/e2e-provider.sha256
+fi
+phase provider-build
+
+for pid in "${pids[@]}"; do
+  wait "$pid"
+done
+phase lane-clusters
+
+deploy() (
+  kind export kubeconfig --name "$1" --kubeconfig "_output/lanes/$1.kubeconfig"
+  export KUBECONFIG="$PWD/_output/lanes/$1.kubeconfig"
+  make controlplane.up KIND_CLUSTER_NAME="$1" \
+    CROSSPLANE_VERSION="$(sed -n 's/^ *version: ">=v\(.*\)"$/\1/p' package/crossplane.yaml)"
+  kubectl -n crossplane-system wait --for=condition=Available deployment --all --timeout=5m
+  make e2e.provider KIND_CLUSTER_NAME="$1" LOCAL_XPKG_DIGEST="sha256:$hash" DRC_FILE=cluster/test/runtimeconfig.yaml
+  kubectl wait provider.pkg provider-posthog --for=jsonpath='{.status.currentIdentifier}'="xpkg.crossplane.internal/dev/provider-posthog@sha256:$hash" --timeout=5m
+  if $rebuilt; then
+    kubectl -n crossplane-system delete pod -l pkg.crossplane.io/provider=provider-posthog
+  fi
+  kubectl -n crossplane-system wait --for=condition=Available deployment --all --timeout=5m
+)
+for lane in "${LANES[@]}"; do
+  deploy "$lane"
+done
+phase provider-install
+
+run_lane() (
+  export KUBECONFIG="$PWD/_output/lanes/$1.kubeconfig"
+  while read -r _ examples; do
+    for example in $examples; do
+      make uptest UPTEST_EXAMPLE_LIST="$example" UPTEST_ARGS="--test-directory=$PWD/_output/uptest/$1" 2>&1 | sed "s/^/[$1] /"
+    done
+  done < "_output/lanes/$1.jobs"
+  echo "e2e-timing lane-$1 $((SECONDS - start))s"
+)
+
+mapfile -t examples < <(find examples/namespaced -path '*/v1alpha1/*.yaml' | sort | xargs grep -L upjet.upbound.io/manual-intervention)
+{
+  echo "test-user $(grep -l POSTHOG_TEST_USER_UUID "${examples[@]}" | xargs)"
+  grep -L POSTHOG_TEST_USER_UUID "${examples[@]}" | sed 's#^examples/namespaced/\([^/]*\)/v1alpha1/\(.*\)\.yaml$#\1-\2 &#'
+} | awk -v lanes="${LANES[*]}" '{n = split(lanes, l, " "); print > ("_output/lanes/" l[NR % n + 1] ".jobs")}'
+
+pids=()
+for lane in "${LANES[@]}"; do
+  run_lane "$lane" &
+  pids+=($!)
+done
+failed=0
+for pid in "${pids[@]}"; do
+  wait "$pid" || failed=1
+done
+phase tests
+exit "$failed"
