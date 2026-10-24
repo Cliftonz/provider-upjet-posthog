@@ -73,8 +73,10 @@ if ! kind get clusters | grep -x "$CLUSTER" > /dev/null; then
   envsubst "\${POSTHOG_PORT}" < kind.yaml | kind create cluster --name "$CLUSTER" --image "$KIND_NODE_IMAGE" --config -
   fresh=true
   phase cluster-create
-  preload
-  phase image-preload
+  if [ -z "${CI:-}" ]; then
+    preload
+    phase image-preload
+  fi
 fi
 
 mkdir -p "$SRC"
