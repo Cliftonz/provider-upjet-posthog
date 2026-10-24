@@ -1,6 +1,7 @@
 package config
 
 import (
+	"math"
 	"testing"
 
 	ujconfig "github.com/crossplane/upjet/v2/pkg/config"
@@ -22,6 +23,21 @@ func TestIDToString(t *testing.T) {
 			mode: ujconfig.FromTerraform,
 			in:   map[string]any{"id": "0/feature_flag/default"},
 			want: map[string]any{"id": "0/feature_flag/default"},
+		},
+		"AbsentIDFromTerraform": {
+			mode: ujconfig.FromTerraform,
+			in:   map[string]any{"name": "x"},
+			want: map[string]any{"name": "x"},
+		},
+		"Int64MaxFromTerraform": {
+			mode: ujconfig.FromTerraform,
+			in:   map[string]any{"id": int64(math.MaxInt64)},
+			want: map[string]any{"id": "9223372036854775807"},
+		},
+		"Int64MinFromTerraform": {
+			mode: ujconfig.FromTerraform,
+			in:   map[string]any{"id": int64(math.MinInt64)},
+			want: map[string]any{"id": "-9223372036854775808"},
 		},
 		"ToTerraform": {
 			mode: ujconfig.ToTerraform,

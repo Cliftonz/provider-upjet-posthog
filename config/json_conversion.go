@@ -21,11 +21,14 @@ func (canonicalJSON) Convert(params map[string]any, _ *ujconfig.Resource, mode u
 		decoder := json.NewDecoder(strings.NewReader(s))
 		decoder.UseNumber()
 		var parsed any
-		if decoder.Decode(&parsed) != nil {
+		if decoder.Decode(&parsed) != nil || strings.TrimSpace(s[decoder.InputOffset():]) != "" {
 			continue
 		}
-		canonical, _ := json.Marshal(parsed) //nolint:errchkjson
-		params[key] = string(canonical)
+		var canonical strings.Builder
+		encoder := json.NewEncoder(&canonical)
+		encoder.SetEscapeHTML(false)
+		_ = encoder.Encode(parsed) //nolint:errchkjson
+		params[key] = strings.TrimSuffix(canonical.String(), "\n")
 	}
 	return params, nil
 }
