@@ -181,6 +181,7 @@ spec:
             - {name: initdb, mountPath: /docker-entrypoint-initdb.d}
             - {name: config, mountPath: /etc/clickhouse-server/config.xml, subPath: config.xml}
             - {name: config, mountPath: /etc/clickhouse-server/config.d/default.xml, subPath: default.xml}
+            - {name: config, mountPath: /etc/clickhouse-server/config.d/backups.xml, subPath: backups.xml}
             - {name: config, mountPath: /etc/clickhouse-server/users.xml, subPath: users.xml}
             - {name: config, mountPath: /etc/clickhouse-server/user_defined_function.xml, subPath: user_defined_function.xml}
       volumes:
