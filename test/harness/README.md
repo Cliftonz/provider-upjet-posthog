@@ -23,7 +23,9 @@ First boot runs all PostHog migrations and takes about 50 minutes on 4 CPUs; `up
 | `POSTHOG_CLUSTER_HOST` | `http://web.posthog.svc.cluster.local:8000`, reachable from pods in the cluster, such as the provider |
 | `POSTHOG_API_KEY` | personal API key with scope `*` for the admin user |
 | `POSTHOG_ORGANIZATION_ID` | organization of the admin user |
-| `POSTHOG_PROJECT_ID` | default project of that organization |
+| `POSTHOG_PROJECT_ID` | first project of that organization |
 | `POSTHOG_TEST_USER_UUID` | a second member of the organization |
 
 An enterprise license row is inserted so EE features are available; PostHog's `ee/LICENSE` permits this for development and testing.
+
+Harness decisions are recorded in [docs/decisions.md](../../docs/decisions.md).
