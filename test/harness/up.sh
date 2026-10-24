@@ -12,7 +12,7 @@ NAMESPACE=posthog
 export POSTHOG_HOST=http://localhost:$POSTHOG_PORT
 POSTHOG_CLUSTER_HOST=http://web.$NAMESPACE.svc.cluster.local:8000
 SRC=.out/src
-SNAPSHOT="${XDG_CACHE_HOME:-$HOME/.cache}/posthog-e2e/$(sha256sum images.env | cut -c1-16).tar"
+SNAPSHOT="${XDG_CACHE_HOME:-$HOME/.cache}/posthog-e2e/$(cat images.env bootstrap.py manifests/* | sha256sum | cut -d' ' -f1).tar"
 kc() { kubectl --context "kind-$CLUSTER" --namespace "$NAMESPACE" "$@"; }
 apply() { envsubst "$VARS" < "manifests/$1.yaml" | kc apply -f -; }
 

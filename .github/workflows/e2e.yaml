@@ -55,14 +55,14 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/posthog-e2e
-          key: posthog-snapshot-${{ hashFiles('test/harness/images.env') }}
+          key: posthog-snapshot-${{ hashFiles('test/harness/images.env', 'test/harness/bootstrap.py', 'test/harness/manifests/**') }}
       - name: Start harness
         run: test/harness/up.sh
       - if: steps.snapshot.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/posthog-e2e
-          key: posthog-snapshot-${{ hashFiles('test/harness/images.env') }}
+          key: posthog-snapshot-${{ hashFiles('test/harness/images.env', 'test/harness/bootstrap.py', 'test/harness/manifests/**') }}
       - name: Run e2e
         run: hack/e2e.sh
 
@@ -77,7 +77,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/posthog-e2e
-          key: posthog-snapshot-${{ hashFiles('test/harness/images.env') }}
+          key: posthog-snapshot-${{ hashFiles('test/harness/images.env', 'test/harness/bootstrap.py', 'test/harness/manifests/**') }}
           lookup-only: true
       - if: steps.snapshot.outputs.cache-hit != 'true'
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
@@ -91,7 +91,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/posthog-e2e
-          key: posthog-snapshot-${{ hashFiles('test/harness/images.env') }}
+          key: posthog-snapshot-${{ hashFiles('test/harness/images.env', 'test/harness/bootstrap.py', 'test/harness/manifests/**') }}
 
   go-cache:
     if: github.event_name == 'push'
