@@ -23,6 +23,8 @@ const pinHunk = `@@ -12,5 +12,5 @@
  export TERRAFORM_PROVIDER_MODULE ?= github.com/posthog/terraform-provider
 `
 
+const makefilePath = "Makefile"
+
 const hunk = "@@ -1 +1 @@\n-a\n+b\n"
 
 func TestDisallowedPaths(t *testing.T) {
@@ -35,7 +37,7 @@ func TestDisallowedPaths(t *testing.T) {
 		diff("examples-generated/namespaced/project.yaml", hunk),
 		diff("go.mod", hunk),
 		diff("go.sum", hunk),
-		diff("Makefile", pinHunk),
+		diff(makefilePath, pinHunk),
 		"diff --git a/apis/new.go b/apis/new.go\nnew file mode 100644\nindex 0..1\nGIT binary patch\nliteral 2\nJcmZQ%000\n\n",
 	}, "")
 
@@ -48,13 +50,13 @@ func TestDisallowedPaths(t *testing.T) {
 		{"other paths are rejected", allowed + diff("hack/open-pr.sh", hunk) + diff("cmd/tracking/main.go", hunk) + diff("config/provider.go", hunk), []string{"cmd/tracking/main.go", "config/provider.go", "hack/open-pr.sh"}},
 		{"a prefix match is not a directory match", diff("apis-extra/x.go", hunk) + diff("go.mod.bak", hunk), []string{"apis-extra/x.go", "go.mod.bak"}},
 		{"renames check both paths", "diff --git a/apis/x.go b/hack/x.go\nsimilarity index 100%\nrename from apis/x.go\nrename to hack/x.go\n", []string{"hack/x.go"}},
-		{"other Makefile hunks are rejected", diff("Makefile", pinHunk+"@@ -40 +40 @@\n-build: x\n+build: y\n"), []string{"Makefile"}},
-		{"a removed Makefile line starting with dashes is checked", diff("Makefile", "@@ -40 +40 @@\n--- comment\n+export TERRAFORM_PROVIDER_REF ?= x\n"), []string{"Makefile"}},
-		{"a pin value with a make expansion is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_REF ?= x\n+export TERRAFORM_PROVIDER_REF ?= $(shell id)\n"), []string{"Makefile"}},
-		{"a pin value with a space is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_REF ?= x\n+export TERRAFORM_PROVIDER_REF ?= x y\n"), []string{"Makefile"}},
-		{"a pin value with quotes is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= \"1.0.26\"\n"), []string{"Makefile"}},
-		{"an empty pin value is rejected", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= \n"), []string{"Makefile"}},
-		{"a pin value with semver suffixes passes", diff("Makefile", "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= 1.0.26-rc.1+build_2\n"), nil},
+		{"other Makefile hunks are rejected", diff(makefilePath, pinHunk+"@@ -40 +40 @@\n-build: x\n+build: y\n"), []string{makefilePath}},
+		{"a removed Makefile line starting with dashes is checked", diff(makefilePath, "@@ -40 +40 @@\n--- comment\n+export TERRAFORM_PROVIDER_REF ?= x\n"), []string{makefilePath}},
+		{"a pin value with a make expansion is rejected", diff(makefilePath, "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_REF ?= x\n+export TERRAFORM_PROVIDER_REF ?= $(shell id)\n"), []string{makefilePath}},
+		{"a pin value with a space is rejected", diff(makefilePath, "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_REF ?= x\n+export TERRAFORM_PROVIDER_REF ?= x y\n"), []string{makefilePath}},
+		{"a pin value with quotes is rejected", diff(makefilePath, "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= \"1.0.26\"\n"), []string{makefilePath}},
+		{"an empty pin value is rejected", diff(makefilePath, "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= \n"), []string{makefilePath}},
+		{"a pin value with semver suffixes passes", diff(makefilePath, "@@ -12 +12 @@\n-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25\n+export TERRAFORM_PROVIDER_VERSION ?= 1.0.26-rc.1+build_2\n"), nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -45,8 +45,8 @@ func TestCanonicalJSON(t *testing.T) {
 		},
 		"KeepsNonASCII": {
 			mode: ujconfig.ToTerraform,
-			in:   map[string]any{"query_json": `{"name": "café ✓ 日本"}`},
-			want: map[string]any{"query_json": `{"name":"café ✓ 日本"}`},
+			in:   map[string]any{"query_json": `{"name": "café ✓ ü"}`},
+			want: map[string]any{"query_json": `{"name":"café ✓ ü"}`},
 		},
 		"SortsObjectsInArrays": {
 			mode: ujconfig.ToTerraform,
