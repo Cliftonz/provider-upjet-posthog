@@ -169,8 +169,8 @@ spec:
                     type: object
                   schemas:
                     description: |-
-                      level update endpoint cannot edit the schema list, so changes force destroy+recreate.
-                      List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+                      level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
+                      List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. Order does not matter. The source-level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
                     items:
                       type: string
                     type: array
@@ -299,8 +299,8 @@ spec:
                     type: object
                   schemas:
                     description: |-
-                      level update endpoint cannot edit the schema list, so changes force destroy+recreate.
-                      List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+                      level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
+                      List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. Order does not matter. The source-level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
                     items:
                       type: string
                     type: array
@@ -412,8 +412,8 @@ spec:
                     type: string
                   schemas:
                     description: |-
-                      level update endpoint cannot edit the schema list, so changes force destroy+recreate.
-                      List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+                      level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
+                      List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. Order does not matter. The source-level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
                     items:
                       type: string
                     type: array

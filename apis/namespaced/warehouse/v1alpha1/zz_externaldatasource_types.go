@@ -36,8 +36,8 @@ type ExternalDataSourceInitParameters struct {
 	// +kubebuilder:validation:Optional
 	ProjectIDSelector *v2.NamespacedSelector `json:"projectIdSelector,omitempty" tf:"-"`
 
-	// level update endpoint cannot edit the schema list, so changes force destroy+recreate.
-	// List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+	// level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
+	// List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. Order does not matter. The source-level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
 	Schemas []*string `json:"schemas,omitempty" tf:"schemas,omitempty"`
 
 	// (String) Source type recognised by the PostHog data warehouse (e.g. Stripe, Postgres, Snowflake, BigQuery, Hubspot). PostHog defines the set of accepted values and may add new types over time; see the PostHog data warehouse docs for the current list. Cannot be changed after creation.
@@ -66,8 +66,8 @@ type ExternalDataSourceObservation struct {
 	// Project ID (environment) for this resource. Overrides the provider-level project_id.
 	ProjectID *string `json:"projectId,omitempty" tf:"project_id,omitempty"`
 
-	// level update endpoint cannot edit the schema list, so changes force destroy+recreate.
-	// List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+	// level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
+	// List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. Order does not matter. The source-level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
 	Schemas []*string `json:"schemas,omitempty" tf:"schemas,omitempty"`
 
 	// (String) Source type recognised by the PostHog data warehouse (e.g. Stripe, Postgres, Snowflake, BigQuery, Hubspot). PostHog defines the set of accepted values and may add new types over time; see the PostHog data warehouse docs for the current list. Cannot be changed after creation.
@@ -109,8 +109,8 @@ type ExternalDataSourceParameters struct {
 	// +kubebuilder:validation:Optional
 	ProjectIDSelector *v2.NamespacedSelector `json:"projectIdSelector,omitempty" tf:"-"`
 
-	// level update endpoint cannot edit the schema list, so changes force destroy+recreate.
-	// List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. The source-level update endpoint cannot edit the schema list, so changes force destroy+recreate.
+	// level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
+	// List of table names to sync from the source (e.g. `["users", "orders"]`). PostHog discovers available tables from the source; these must match discovered table names. Order does not matter. The source-level update endpoint cannot edit the schema list, so adding or removing a schema forces destroy+recreate.
 	// +kubebuilder:validation:Optional
 	Schemas []*string `json:"schemas,omitempty" tf:"schemas,omitempty"`
 
