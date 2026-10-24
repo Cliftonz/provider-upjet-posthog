@@ -31,7 +31,7 @@
 ## cdp
 
 - Examples omit projectId and rely on the ProviderConfig-level project.
-- HogFunction uses template-microsoft-teams with type destination. template-webhook is served by PostHog's Node.js CDP service, which the harness does not run; the harness bootstrap syncs the Python-backed templates into the database.
+- HogFunction is a webhook destination (template-webhook, inputs url, method, body and headers, $pageview filter); the harness bootstrap syncs the Node.js CDP templates, so the Node.js service need not run. The Teams example it replaced set the same fields, so it is not kept.
 - No HogFunction id reference field exists in the generated CRDs, so no HogFunction refs are used.
 - Secret-backed fields (jobInputsJson, accessKey, accessSecret, webhookUrl) use a Secret document placed in the same file as the consumer, in namespace default.
 
@@ -55,7 +55,7 @@
 
 ## logs
 
-- AlertDestination brings its own logs Alert through alertIdRef and uses type teams. PostHog builds webhook destinations from template-webhook, which needs the Node.js CDP service the harness does not run; teams uses a Python-backed template and validates the URL only when it fires. The destination has no in-place update, so uptest skips its update step.
+- AlertDestination brings its own logs Alert through alertIdRef and uses type webhook with webhookUrl from its Secret; PostHog builds it from template-webhook, which the harness bootstrap syncs. The destination has no in-place update, so uptest skips its update step.
 
 ## organization
 
@@ -78,5 +78,5 @@
 
 ## warehouse
 
-- ExternalDataSource is excluded from e2e via the upjet.upbound.io/manual-intervention annotation, which uptest v2.2.0 honors; it needs a reachable external Postgres.
-- Table is excluded from e2e via upjet.upbound.io/manual-intervention: PostHog rejects URL patterns that are not https or that resolve to private addresses, so no object store inside kind qualifies. The example uses placeholder S3 values.
+- ExternalDataSource syncs public.users and public.orders from the harness source-db (TLS Postgres, user reader) with prefix e2e_; its job inputs come from a Secret. schemas is listed alphabetically, the order PostHog returns it in; in any other order the provider sees a diff on schemas, which requires replacement, and the MR never becomes Synced. jobInputsJson is its only updatable field and is sensitive, so status.atProvider never shows it and uptest's update step cannot assert it: the post-assert hook instead switches jobInputsJsonSecretRef to the Secret key jobInputsUpdated, whose host is the shorter source-db.posthog.svc, and waits until PostHog reports that host; the pre-delete hook asserts it again after import.
+- Table is excluded from e2e via upjet.upbound.io/manual-intervention: PostHog rejects URL patterns that are not https or that resolve to private addresses, so no object store inside kind qualifies, and the harness could provide one only by hijacking a public IP or running PostHog in DEBUG mode. The example uses placeholder S3 values.
