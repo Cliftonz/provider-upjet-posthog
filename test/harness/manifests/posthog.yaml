@@ -114,3 +114,19 @@ spec:
           command: [./bin/temporal-django-worker]
           envFrom: [{configMapRef: {name: posthog-env}}]
           env: [{name: POSTHOG_SKIP_MIGRATION_CHECKS, value: "1"}]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hog-function-templates
+spec:
+  template:
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: templates
+          image: ${POSTHOG_NODE_IMAGE}
+          workingDir: /code/nodejs
+          command: [node, -e, 'console.log(JSON.stringify(require("./dist/cdp/templates").HOG_FUNCTION_TEMPLATES))']
+          env: [{name: DATABASE_URL, value: postgres://unused}]

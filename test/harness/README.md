@@ -6,7 +6,7 @@ PostHog no longer ships a maintained Kubernetes deployment, so `manifests/` port
 
 ## Run
 
-Requires Docker, kind, kubectl, curl and envsubst; run under bash (WSL Ubuntu or Git Bash).
+Requires Docker, kind, kubectl, curl, envsubst and openssl; run under bash (WSL Ubuntu or Git Bash).
 
 ```sh
 test/harness/up.sh     # create cluster if missing, deploy, wait, bootstrap
@@ -25,6 +25,10 @@ First boot runs all PostHog migrations and takes about 50 minutes on 4 CPUs; `up
 | `POSTHOG_ORGANIZATION_ID` | organization of the admin user |
 | `POSTHOG_PROJECT_ID` | first project of that organization |
 | `POSTHOG_TEST_USER_UUID` | a second member of the organization |
+
+`source-db` (`source-db.posthog.svc.cluster.local:5432`) is a separate Postgres with TLS on (a self-signed certificate made by `up.sh`) for external data source tests: database `app`, tables `public.users` and `public.orders` with a few rows, and read-only user `reader` with password `reader`.
+
+`bootstrap.py` syncs PostHog's hog function templates into the database: the Python ones and the Node.js CDP ones (such as `template-webhook`), which the `hog-function-templates` Job prints from the pinned `posthog-node` image because the harness does not run the Node.js service.
 
 An enterprise license row is inserted so EE features are available; PostHog's `ee/LICENSE` permits this for development and testing.
 

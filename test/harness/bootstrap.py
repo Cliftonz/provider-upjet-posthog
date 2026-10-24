@@ -1,4 +1,6 @@
+import json
 import os
+import sys
 from datetime import datetime, timezone
 
 import django
@@ -33,7 +35,7 @@ License.objects.get_or_create(
     defaults={"key": "posthog-e2e", "valid_until": datetime(2099, 1, 1, tzinfo=timezone.utc)},
 )
 
-for template in HOG_FUNCTION_TEMPLATES:
+for template in [*HOG_FUNCTION_TEMPLATES, *json.load(sys.stdin)]:
     sync_template_to_db(template)
 
 PersonalAPIKey.objects.filter(user=admin, label="posthog-e2e").delete()

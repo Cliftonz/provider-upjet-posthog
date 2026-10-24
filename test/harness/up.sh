@@ -98,6 +98,8 @@ kc create configmap clickhouse-config --dry-run=client -o yaml \
 kc create configmap clickhouse-initdb --dry-run=client -o yaml --from-file="$SRC/init-db.sh" | kc apply -f -
 kc create configmap kafka-topics --dry-run=client -o yaml --from-file="$SRC/topics.txt" | kc apply -f -
 kc create configmap temporal-dynamicconfig --dry-run=client -o yaml --from-file="$SRC/development-sql.yaml" | kc apply -f -
+openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj /CN=source-db -keyout .out/source-db.key -out .out/source-db.crt 2> /dev/null
+kc create secret tls source-db-tls --dry-run=client -o yaml --cert=.out/source-db.crt --key=.out/source-db.key | kc apply -f -
 
 VARS="$(sed -n 's/^\([A-Z_]*\)=.*/${\1}/p' images.env | tr '\n' ' ') \${POSTHOG_HOST}"
 apply stores
@@ -109,11 +111,11 @@ fi
 apply posthog
 apply personhog
 
-kc wait --for=condition=complete job/kafka-topics --timeout=30m
+kc wait --for=condition=complete job/kafka-topics job/hog-function-templates --timeout=30m
 kc wait --for=condition=Available deployment --all --timeout=90m
 phase posthog-ready
 
-BOOTSTRAP="$(kc exec -i deploy/web -- env PYTHONPATH=/code:/python-runtime python - < bootstrap.py | grep '^POSTHOG_')"
+BOOTSTRAP="$(kc logs job/hog-function-templates | kc exec -i deploy/web -- env PYTHONPATH=/code:/python-runtime python -c "$(cat bootstrap.py)" | grep '^POSTHOG_')"
 printf 'POSTHOG_HOST=%s\nPOSTHOG_CLUSTER_HOST=%s\n%s\n' "$POSTHOG_HOST" "$POSTHOG_CLUSTER_HOST" "$BOOTSTRAP" > .out/posthog.env
 echo "wrote $(pwd)/.out/posthog.env"
 phase bootstrap

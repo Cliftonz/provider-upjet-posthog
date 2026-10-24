@@ -267,3 +267,51 @@ spec:
             tcpSocket: {port: 7233}
           volumeMounts: [{name: dynamicconfig, mountPath: /etc/temporal/config/dynamicconfig}]
       volumes: [{name: dynamicconfig, configMap: {name: temporal-dynamicconfig}}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: source-db-initdb
+data:
+  init.sql: |
+    CREATE TABLE public.users (id serial PRIMARY KEY, email text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+    CREATE TABLE public.orders (id serial PRIMARY KEY, user_id int NOT NULL REFERENCES public.users, total_cents int NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+    INSERT INTO public.users (email) VALUES ('ada@example.com'), ('grace@example.com'), ('linus@example.com');
+    INSERT INTO public.orders (user_id, total_cents) VALUES (1, 1250), (1, 4999), (2, 300), (3, 12000);
+    CREATE ROLE reader LOGIN PASSWORD 'reader';
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO reader;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: source-db
+spec:
+  selector: {app: source-db}
+  ports: [{port: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: source-db
+spec:
+  selector: {matchLabels: {app: source-db}}
+  template:
+    metadata: {labels: {app: source-db}}
+    spec:
+      enableServiceLinks: false
+      securityContext: {fsGroup: 70}
+      containers:
+        - name: source-db
+          image: ${POSTGRES_IMAGE}
+          args: [-c, ssl=on, -c, ssl_cert_file=/tls/tls.crt, -c, ssl_key_file=/tls/tls.key]
+          env:
+            - {name: POSTGRES_DB, value: app}
+            - {name: POSTGRES_PASSWORD, value: postgres}
+          readinessProbe:
+            exec: {command: [pg_isready, -U, postgres, -h, 127.0.0.1]}
+          volumeMounts:
+            - {name: initdb, mountPath: /docker-entrypoint-initdb.d}
+            - {name: tls, mountPath: /tls}
+      volumes:
+        - {name: initdb, configMap: {name: source-db-initdb}}
+        - {name: tls, secret: {secretName: source-db-tls, defaultMode: 0640}}
