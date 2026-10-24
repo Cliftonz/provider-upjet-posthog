@@ -58,7 +58,7 @@ func configureResource(r *ujconfig.Resource) {
 func resourceNames() []string {
 	names := make([]string, 0, len(resources))
 	for name := range resources {
-		names = append(names, name+"$")
+		names = append(names, "^"+name+"$")
 	}
 	return names
 }
