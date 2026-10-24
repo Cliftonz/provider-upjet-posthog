@@ -72,14 +72,3 @@ func TestSchemaChanges(t *testing.T) {
 		t.Errorf("schemaChanges() = %v, want %v", got, want)
 	}
 }
-
-func TestNewResources(t *testing.T) {
-	s := schemaJSON(`"posthog_a": {"block": {}}, "posthog_b": {"block": {}}, "posthog_c": {"block": {}}`)
-	got, err := newResources(s, map[string]bool{"posthog_b": true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := []string{"posthog_a", "posthog_c"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("newResources() = %v, want %v", got, want)
-	}
-}

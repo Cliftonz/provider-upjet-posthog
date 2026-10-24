@@ -30,6 +30,8 @@ jobs:
       git-name: ${{ steps.identity.outputs.name }}
       git-email: ${{ steps.identity.outputs.email }}
     steps:
+      - name: Setup
+        run: echo "release|setup" > "$RUNNER_TEMP/step"
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: app
         with:
@@ -119,6 +121,8 @@ jobs:
       UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
       FORK_TAG: ${{ needs.detect.outputs.fork-tag }}
     steps:
+      - name: Setup
+        run: echo "fork-rebase|setup" > "$RUNNER_TEMP/step"
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: main
@@ -172,6 +176,8 @@ jobs:
       FORK_TAG: ${{ needs.fork.outputs.tag }}
       FORK_BASE: ${{ needs.fork.outputs.base }}
     steps:
+      - name: Setup
+        run: echo "fork-rebase|setup" > "$RUNNER_TEMP/step"
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: app
         with:
@@ -208,6 +214,8 @@ jobs:
       UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
       FORK_TAG: ${{ needs.fork.outputs.tag }}
     steps:
+      - name: Setup
+        run: echo "build|setup" > "$RUNNER_TEMP/step"
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: main
@@ -239,7 +247,7 @@ jobs:
       - name: New-resource gate
         run: |
           echo "new-resource|new-resource gate" > "$RUNNER_TEMP/step"
-          go run ./cmd/tracking new-resources config/schema.json |
+          go run ./cmd/tracking-resources config/schema.json |
             go run ./cmd/tracking gate hack/upstream-acks.yaml "$UPSTREAM_VERSION" new-resource |
             tee "$RUNNER_TEMP/affected"
       - name: Export changes
@@ -267,6 +275,8 @@ jobs:
     env:
       UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
     steps:
+      - name: Setup
+        run: echo "release|setup" > "$RUNNER_TEMP/step"
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: app
         with:

@@ -114,18 +114,3 @@ func attributeChanges(path string, o, n map[string]tfAttribute) []string {
 	}
 	return changes
 }
-
-func newResources(schema []byte, configured map[string]bool) ([]string, error) {
-	blocks, err := resourceBlocks(schema)
-	if err != nil {
-		return nil, err
-	}
-	var names []string
-	for name := range blocks {
-		if !configured[name] {
-			names = append(names, name)
-		}
-	}
-	slices.Sort(names)
-	return names, nil
-}

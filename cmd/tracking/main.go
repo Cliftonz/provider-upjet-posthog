@@ -12,8 +12,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-
-	"github.com/Cliftonz/provider-upjet-posthog/config"
 )
 
 const usage = `usage:
@@ -22,7 +20,6 @@ const usage = `usage:
   tracking skips ACKS
   tracking schema-diff OLD_SCHEMA NEW_SCHEMA
   tracking crd-diff OLD_CRD_DIR NEW_CRD_DIR
-  tracking new-resources SCHEMA
   tracking gate ACKS VERSION breaking-change|new-resource < changes
   tracking patch-paths PATCH`
 
@@ -50,8 +47,6 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 		lines, err = schemaDiff(args[1], args[2])
 	case "crd-diff":
 		lines, err = crdChanges(args[1], args[2])
-	case "new-resources":
-		lines, err = configuredNewResources(args[1])
 	case "gate":
 		return gate(args[1], args[2], args[3], readLines(stdin), stdout)
 	case "patch-paths":
@@ -143,18 +138,6 @@ func schemaDiff(oldPath, newPath string) ([]string, error) {
 		return nil, err
 	}
 	return schemaChanges(old, updated)
-}
-
-func configuredNewResources(schemaPath string) ([]string, error) {
-	schema, err := os.ReadFile(schemaPath) //nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-	configured := map[string]bool{}
-	for name := range config.GetProvider().Resources {
-		configured[name] = true
-	}
-	return newResources(schema, configured)
 }
 
 func patchPaths(path string) ([]string, error) {

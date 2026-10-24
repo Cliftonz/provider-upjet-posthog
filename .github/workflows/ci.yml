@@ -29,6 +29,14 @@ jobs:
         with:
           go-version-file: go.mod
       - run: make vendor vendor.check
+      - name: Check hack scripts are executable
+        run: |
+          modes=$(git ls-files -s -- 'hack/*.sh')
+          ! grep -v '^100755' <<< "$modes"
+      - name: Check the token-holding tracking tool does not link upstream
+        run: |
+          deps=$(go list -deps ./cmd/tracking)
+          ! grep '^github.com/posthog/terraform-provider' <<< "$deps"
       - uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
