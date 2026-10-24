@@ -95,7 +95,7 @@ upjet generates managed resources only. `posthog_insight` and `posthog_role` are
 
 Config kinds: namespaced `ProviderConfig` (usable in its own namespace), cluster-scoped `ClusterProviderConfig` (usable from any namespace), and `ProviderConfigUsage`. Managed resources select one with `spec.providerConfigRef: {kind, name}`.
 
-The credentials `source` enum is narrowed to `Secret`. The referenced key holds JSON whose fields are the upstream provider configuration attributes; absent keys take upstream defaults (`host` defaults to `https://us.posthog.com`). Malformed JSON or a missing `api_key` fails the connection with a condition naming the problem; this is specified behavior with its own tests. Upstream also falls back to `POSTHOG_*` environment variables for absent keys, so the provider pod must not set them; otherwise one pod-level value would leak into every ProviderConfig.
+The credentials `source` enum is narrowed to `Secret`. The referenced key holds JSON whose fields are the upstream provider configuration attributes, which are exactly `api_key`, `host`, `organization_id` and `project_id`; the provider maps these four explicitly, values must be strings, and other keys are ignored. Absent keys take upstream defaults (`host` defaults to `https://us.posthog.com`). Malformed JSON or a missing `api_key` fails the connection with a condition naming the problem; this is specified behavior with its own tests. Upstream also falls back to `POSTHOG_*` environment variables for absent keys, so the provider pod must not set them; otherwise one pod-level value would leak into every ProviderConfig.
 
 ```yaml
 apiVersion: v1
