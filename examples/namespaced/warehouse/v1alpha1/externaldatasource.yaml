@@ -23,8 +23,8 @@ spec:
     sourceType: Postgres
     prefix: e2e_
     schemas:
-      - orders
       - users
+      - orders
     jobInputsJsonSecretRef:
       name: example-externaldatasource-inputs
       key: jobInputs
