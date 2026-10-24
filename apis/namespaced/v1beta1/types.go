@@ -32,7 +32,6 @@ type ProviderConfigStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="SECRET-NAME",type="string",JSONPath=".spec.credentials.secretRef.name",priority=1
-// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:resource:scope=Namespaced,categories={crossplane,provider,posthog}
 type ProviderConfig struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -81,7 +80,6 @@ type ProviderConfigUsageList struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="SECRET-NAME",type="string",JSONPath=".spec.credentials.secretRef.name",priority=1
-// +kubebuilder:resource:scope=Cluster
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,provider,posthog}
 type ClusterProviderConfig struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -93,7 +91,7 @@ type ClusterProviderConfig struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterProviderConfigList contains a list of ProviderConfig.
+// ClusterProviderConfigList contains a list of ClusterProviderConfig.
 type ClusterProviderConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
