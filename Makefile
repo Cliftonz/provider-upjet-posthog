@@ -117,7 +117,15 @@ pull-docs:
 
 generate.init: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs
 
-.PHONY: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs check-terraform-version
+GOIMPORTS := $(TOOLS_HOST_DIR)/goimports
+
+$(GOIMPORTS):
+	@$(GOHOST) build -o $(GOIMPORTS) golang.org/x/tools/cmd/goimports || $(FAIL)
+
+go.generate: export PATH := $(TOOLS_HOST_DIR):$(PATH)
+go.generate: $(GOIMPORTS)
+
+.PHONY: $(TERRAFORM_PROVIDER_SCHEMA) $(GOIMPORTS) pull-docs check-terraform-version
 # ====================================================================================
 # Targets
 
