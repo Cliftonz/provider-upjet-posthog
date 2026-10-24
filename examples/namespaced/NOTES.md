@@ -14,7 +14,7 @@
 - RoleMembership brings its own Role; it has no in-place updatable field, so uptest skips its update step.
 - role-observe.yaml takes ${data.OBSERVED_ROLE_ID}, the UUID of a role hack/e2e.sh creates through the API; it has its own example-id and asserts Ready and Synced only, since upjet sets Test only when the spec matches the observed state.
 - role.yaml carries testhooks/role-api.sh, which asserts through the API that the role exists after create and is gone after delete.
-- Timeout annotation is 300 seconds on all managed examples; no measured value yet.
+- Timeout annotation is 300 seconds on all managed examples; on posthog-e2e every apply step finished within 35 seconds.
 
 ## analytics
 

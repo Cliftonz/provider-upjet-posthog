@@ -54,7 +54,6 @@ GO_SUBDIRS += cmd internal apis
 # Setup Kubernetes tools
 
 KIND_VERSION = v0.32.0
-UPTEST_VERSION = v2.2.0
 CRDDIFF_VERSION = v0.12.1
 CROSSPLANE_CLI_VERSION = v2.2.1
 # for e2e testing
@@ -181,6 +180,17 @@ run: go.build
 CROSSPLANE_NAMESPACE = crossplane-system
 -include build/makelib/local.xpkg.mk
 -include build/makelib/controlplane.mk
+
+# uptest v2.2.0 mangles JSON update parameters; the fix is on main but unreleased.
+UPTEST_COMMIT = f85cc370e3dab6365919e58a4607584d4b260224
+UPTEST := $(TOOLS_HOST_DIR)/uptest-$(UPTEST_COMMIT)
+$(UPTEST):
+	@$(INFO) installing uptest $(UPTEST_COMMIT)
+	@rm -rf $(WORK_DIR)/uptest
+	@git clone -q https://github.com/crossplane/uptest $(WORK_DIR)/uptest
+	@git -C $(WORK_DIR)/uptest checkout -q $(UPTEST_COMMIT)
+	@cd $(WORK_DIR)/uptest && $(GO) build -o $(UPTEST) ./cmd/uptest
+	@$(OK) installing uptest $(UPTEST_COMMIT)
 
 # This target requires the following environment variables to be set:
 # - UPTEST_EXAMPLE_LIST, a comma-separated list of examples to test

@@ -21,12 +21,12 @@ api_state() {
 }
 
 assert_lifecycle() {
-  local mr="$1" collection="$2" id
-  id="$(${KUBECTL} -n default get "$mr" -o jsonpath="{.status.atProvider.id}")"
-  if [ -z "$(${KUBECTL} -n default get "$mr" -o jsonpath="{.metadata.deletionTimestamp}")" ]; then
-    test "$(api_state "$collection/$id/")" = 200
+  local mr="$1" collection="$2" idfile="${TMPDIR:-/tmp}/posthog-e2e-${1##*/}"
+  if [ "$(${KUBECTL} -n default get "$mr" --ignore-not-found -o jsonpath="{.metadata.name}/{.metadata.deletionTimestamp}")" = "${mr##*/}/" ]; then
+    ${KUBECTL} -n default get "$mr" -o jsonpath="{.status.atProvider.id}" > "$idfile"
+    test "$(api_state "$collection/$(cat "$idfile")/")" = 200
   else
     ${KUBECTL} -n default wait --for=delete "$mr" --timeout=5m
-    test "$(api_state "$collection/$id/")" = gone
+    test "$(api_state "$collection/$(cat "$idfile")/")" = gone
   fi
 }
