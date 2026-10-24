@@ -37,6 +37,11 @@ jobs:
         run: |
           deps=$(go list -deps ./cmd/tracking)
           ! grep '^github.com/posthog/terraform-provider' <<< "$deps"
+      - name: Check the Makefile provider ref matches the go.mod fork pin
+        run: |
+          pin=$(go mod edit -json | jq -r '.Replace[] | select(.Old.Path == "github.com/posthog/terraform-provider") | .New.Version')
+          ref=$(sed -n 's/^export TERRAFORM_PROVIDER_REF ?= //p' Makefile)
+          [[ $ref == "$pin" || $ref == "${pin##*-}"* ]]
       - uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
