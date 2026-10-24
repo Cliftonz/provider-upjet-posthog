@@ -1,7 +1,7 @@
 apiVersion: cdp.posthog.m.clifton.quest/v1alpha1
 kind: HogFunction
 metadata:
-  name: teams-destination
+  name: webhook-destination
   namespace: default
   annotations:
     meta.upbound.io/example-id: cdp/v1alpha1/hogfunction
@@ -11,13 +11,13 @@ metadata:
     uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
 spec:
   forProvider:
-    name: example-teams-destination
-    description: Microsoft Teams destination managed by Crossplane
+    name: example-webhook-destination
+    description: Webhook destination managed by Crossplane
     type: destination
     enabled: true
-    templateId: template-microsoft-teams
+    templateId: template-webhook
     inputsJson: |
-      {"webhookUrl":{"value":"https://example.webhook.office.com/webhookb2/e2e/IncomingWebhook/e2e/e2e"},"text":{"value":"{person.name} triggered {event.event}"}}
+      {"url":{"value":"https://example.com/posthog-webhook"},"method":{"value":"POST"},"body":{"value":{"event":"{event}","person":"{person}"}},"headers":{"value":{"Content-Type":"application/json"}}}
     filtersJson: |
       {"events":[{"id":"$pageview","type":"events"}]}
   providerConfigRef:

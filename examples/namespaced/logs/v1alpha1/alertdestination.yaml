@@ -5,7 +5,7 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  url: https://example.webhook.office.com/webhookb2/e2e/IncomingWebhook/e2e/e2e
+  url: https://example.com/posthog-logs-alert
 ---
 apiVersion: logs.posthog.m.clifton.quest/v1alpha1
 kind: AlertDestination
@@ -18,7 +18,7 @@ metadata:
     uptest.upbound.io/post-delete-hook: 'testhooks/alertdestination-api.sh deleted || exit 1'
 spec:
   forProvider:
-    type: teams
+    type: webhook
     alertIdRef:
       name: checkout-errors-oncall-alert
     webhookUrlSecretRef:

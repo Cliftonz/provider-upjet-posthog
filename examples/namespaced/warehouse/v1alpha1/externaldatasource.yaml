@@ -5,7 +5,8 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  jobInputs: '{"host":"postgres.example.internal","port":5432,"database":"app","user":"readonly","password":"change-me","schema":"public"}'
+  jobInputs: '{"host":"source-db.posthog.svc.cluster.local","port":5432,"database":"app","user":"reader","password":"reader","schema":"public"}'
+  jobInputsUpdated: '{"host":"source-db.posthog.svc","port":5432,"database":"app","user":"reader","password":"reader","schema":"public"}'
 ---
 apiVersion: warehouse.posthog.m.clifton.quest/v1alpha1
 kind: ExternalDataSource
@@ -14,14 +15,16 @@ metadata:
   namespace: default
   annotations:
     meta.upbound.io/example-id: warehouse/v1alpha1/externaldatasource
-    upjet.upbound.io/manual-intervention: "requires a reachable external source"
+    uptest.upbound.io/post-assert-hook: 'testhooks/externaldatasource-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/externaldatasource-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/externaldatasource-api.sh deleted || exit 1'
 spec:
   forProvider:
     sourceType: Postgres
-    prefix: example_
+    prefix: e2e_
     schemas:
-      - users
       - orders
+      - users
     jobInputsJsonSecretRef:
       name: example-externaldatasource-inputs
       key: jobInputs
