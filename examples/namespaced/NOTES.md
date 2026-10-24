@@ -5,7 +5,11 @@
 - hack/e2e.sh runs uptest once per example file and skips files that carry upjet.upbound.io/manual-intervention. uptest v2.2.0 renders a broken update step when one run holds more than one root resource, so every file is self-contained: its dependencies carry the file's example-id, which keeps them from being roots.
 - uptest.upbound.io/timeout is set on the root of the access examples except role-observe.yaml (300 seconds) and of project.yaml, proxyrecord.yaml and experiment.yaml (600 seconds); every other example uses the uptest default. On posthog-e2e every access apply step finished within 35 seconds.
 - Placeholders use uptest's ${data.KEY} syntax; hack/e2e.sh writes the data source.
-- Hooks under testhooks/ read POSTHOG_HOST, POSTHOG_API_KEY, POSTHOG_PROJECT_ID and POSTHOG_ORGANIZATION_ID from the environment hack/e2e.sh exports; a deleted object counts as gone on 404 or `deleted: true` (PostHog soft-deletes flags, actions and cohorts).
+- Hooks under testhooks/ read POSTHOG_HOST, POSTHOG_API_KEY, POSTHOG_PROJECT_ID and POSTHOG_ORGANIZATION_ID from the environment hack/e2e.sh exports.
+- The root of every example except role-observe.yaml and insight-observe.yaml runs `<group>/v1alpha1/testhooks/<file>-api.sh` against the PostHog API: as post-assert hook it asserts the object exists; as pre-delete hook with argument `updated` it asserts the update-parameter value, since pre-delete is the only hook uptest runs after the update step; as post-delete hook with argument `deleted` it waits for the MR to go and then for the object to be gone, which is a 404 or `deleted: true` (PostHog soft-deletes flags, insights, experiments and more) and takes a few seconds for a Project, whose deletion is asynchronous.
+- testhooks/posthog.sh holds the shared phases; a hook names its MR, an `object` function that prints the API object or null, and optional CREATED, UPDATED and DELETED jq filters. The create phase saves the MR's status.atProvider to `$TMPDIR/posthog-e2e-<hook>.json`, from which later phases read IDs.
+- uptest runs delete hooks as lines of one `sh -c` script without `set -e`, so the delete hook annotations append `|| exit 1`; a failing delete hook stops the step before the remaining deletes.
+- Settings, DefaultAccess and Layout are singletons: their hooks assert values after create and update and have no post-delete hook. Organization Member sets retainOnDestroy, so its post-delete hook asserts the member is still in the organization.
 
 ## access
 
@@ -14,7 +18,6 @@
 - Project default rule uses resource survey/viewer; role-scoped rule uses feature_flag/editor via roleRef to a Role in the same file.
 - RoleMembership brings its own Role; it has no in-place updatable field, so uptest skips its update step.
 - role-observe.yaml takes ${data.OBSERVED_ROLE_ID}, the UUID of a role hack/e2e.sh creates through the API; it has its own example-id and asserts Ready and Synced only, since upjet sets Test only when the spec matches the observed state.
-- role.yaml carries testhooks/role-api.sh, which asserts through the API that the role exists after create and is gone after delete.
 
 ## analytics
 
@@ -36,7 +39,6 @@
 
 - Layout: its Dashboard and Insight are bundled in layout.yaml. The Insight attaches itself through dashboardIdsRefs, as the upstream posthog_dashboard_layout example does; without it the Insight keeps detaching itself from the dashboard the layout put it on.
 - Layout has no in-place updatable field uptest can assert (tiles is a list), so uptest skips its update step.
-- dashboard.yaml carries testhooks/dashboard-api.sh (API existence after create, absence after delete).
 
 ## experiment
 
@@ -50,7 +52,6 @@
 - Lock flag variants are off 100 / notice 0 / locked 0; the staff/admin group forces notice, the catch-all group serves the default distribution.
 - Payload values are JSON strings (escaped) inside the filters JSON, keyed by variant, as PostHog stores them.
 - featureflag-lock.yaml runs testhooks/lock-toggle.sh after Ready: it patches active to false and asserts through the API that the flag is inactive and keeps the three variants, the payloads and the per-condition variant override.
-- featureflag.yaml carries testhooks/featureflag-api.sh (API existence after create, soft-deleted after delete).
 
 ## logs
 
@@ -68,7 +69,7 @@
 - DefaultAccess, Settings and project Member each bring their own Project through projectIdRef; reason: one uptest run per file.
 - project/member.yaml grants access via organizationMemberRef to an in-file organization Member (role omitted); reason: Role needs the enterprise RBAC objects and the org member covers the required accessLevel path.
 - Project timezone Europe/London; reason: exercise the optional field with a non-default value.
-- Settings and DefaultAccess are singletons per Project; reason: e2e asserts only removal from Crossplane.
+- Settings and DefaultAccess are singletons per Project; reason: e2e asserts their values through the API, not their removal.
 - Project deletion is asynchronous in PostHog and calls personhog, so the harness runs personhog-replica and personhog-router.
 
 ## survey
