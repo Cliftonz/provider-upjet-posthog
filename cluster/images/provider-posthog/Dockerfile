@@ -1,14 +1,10 @@
-FROM alpine:3.23.4
-RUN apk --no-cache add ca-certificates bash
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
 
 ARG TARGETOS
 ARG TARGETARCH
 
-ADD "bin/${TARGETOS}_${TARGETARCH}/provider" /usr/local/bin/provider
+COPY "bin/${TARGETOS}_${TARGETARCH}/provider" /usr/local/bin/provider
 
-ENV USER_ID=65532
-
-USER ${USER_ID}
 EXPOSE 8080
 
-ENTRYPOINT ["provider"]
+ENTRYPOINT ["/usr/local/bin/provider"]
