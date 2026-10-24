@@ -18,6 +18,11 @@ observed_role_id="$(api "organizations/$POSTHOG_ORGANIZATION_ID/roles/" \
   -d "$(jq -n --arg name "e2e-observed-$suffix" '{$name}')" | jq -r .id)"
 observed_insight_id="$(api "projects/$POSTHOG_PROJECT_ID/insights/" \
   -d "$(jq -n --arg name "e2e-observed-$suffix" '{$name, query: {kind: "InsightVizNode", source: {kind: "TrendsQuery", series: []}}}')" | jq -r .id)"
+delete_observed() {
+  api "organizations/$POSTHOG_ORGANIZATION_ID/roles/$observed_role_id/" -X DELETE
+  api "projects/$POSTHOG_PROJECT_ID/insights/$observed_insight_id/" -X PATCH -d '{"deleted": true}' > /dev/null
+}
+trap delete_observed EXIT
 
 mkdir -p _output
 cat > _output/e2e-datasource.yaml <<EOF
@@ -86,12 +91,19 @@ run_lane() (
   export KUBECONFIG="$PWD/_output/lanes/$1.kubeconfig"
   while read -r _ examples; do
     for example in $examples; do
-      make uptest UPTEST_EXAMPLE_LIST="$example" UPTEST_ARGS="--test-directory=$PWD/_output/uptest/$1" 2>&1 | sed "s/^/[$1] /"
+      if ! make uptest UPTEST_EXAMPLE_LIST="$example" UPTEST_ARGS="--test-directory=$PWD/_output/uptest/$1" 2>&1 | sed "s/^/[$1] /"; then
+        echo "$example" >> "_output/lanes/$1.failed"
+      fi
     done
   done < "_output/lanes/$1.jobs"
   echo "e2e-timing lane-$1 $((SECONDS - start))s"
+  [ ! -s "_output/lanes/$1.failed" ]
 )
 
+for lane in "${LANES[@]}"; do
+  : > "_output/lanes/$lane.jobs"
+  : > "_output/lanes/$lane.failed"
+done
 mapfile -t examples < <(find examples/namespaced -path '*/v1alpha1/*.yaml' | sort | xargs grep -L upjet.upbound.io/manual-intervention)
 {
   echo "test-user $(grep -l POSTHOG_TEST_USER_UUID "${examples[@]}" | xargs)"
@@ -108,4 +120,7 @@ for pid in "${pids[@]}"; do
   wait "$pid" || failed=1
 done
 phase tests
+for lane in "${LANES[@]}"; do
+  sed "s/^/e2e-failed [$lane] /" "_output/lanes/$lane.failed"
+done
 exit "$failed"
