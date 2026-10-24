@@ -3,6 +3,7 @@
 ## e2e
 
 - hack/e2e.sh runs uptest once per example file and skips files that carry upjet.upbound.io/manual-intervention. uptest v2.2.0 renders a broken update step when one run holds more than one root resource, so every file is self-contained: its dependencies carry the file's example-id, which keeps them from being roots.
+- uptest.upbound.io/timeout is set on the root of the access examples except role-observe.yaml (300 seconds) and of project.yaml, proxyrecord.yaml and experiment.yaml (600 seconds); every other example uses the uptest default. On posthog-e2e every access apply step finished within 35 seconds.
 - Placeholders use uptest's ${data.KEY} syntax; hack/e2e.sh writes the data source.
 - Hooks under testhooks/ read POSTHOG_HOST, POSTHOG_API_KEY, POSTHOG_PROJECT_ID and POSTHOG_ORGANIZATION_ID from the environment hack/e2e.sh exports; a deleted object counts as gone on 404 or `deleted: true` (PostHog soft-deletes flags, actions and cohorts).
 
@@ -14,7 +15,6 @@
 - RoleMembership brings its own Role; it has no in-place updatable field, so uptest skips its update step.
 - role-observe.yaml takes ${data.OBSERVED_ROLE_ID}, the UUID of a role hack/e2e.sh creates through the API; it has its own example-id and asserts Ready and Synced only, since upjet sets Test only when the spec matches the observed state.
 - role.yaml carries testhooks/role-api.sh, which asserts through the API that the role exists after create and is gone after delete.
-- Timeout annotation is 300 seconds on all managed examples; on posthog-e2e every apply step finished within 35 seconds.
 
 ## analytics
 
@@ -23,7 +23,6 @@
 - Subscription: email target uptest@example.com and a fixed future startDate; insight subject only.
 - Observe example: forProvider is empty; ${data.OBSERVED_INSIGHT_ID} is the numeric ID of an insight hack/e2e.sh creates through the API; it asserts Ready and Synced only.
 - Cohort uses the ClusterProviderConfig `default`, whose Secret lives in crossplane-system, so e2e covers a secretRef in a namespace other than the managed resource's.
-- No uptest timeout annotations were added; none of these resources are slow to reconcile.
 - Alert and Subscription set no projectId; project comes from ProviderConfig.
 
 ## cdp
@@ -43,7 +42,7 @@
 
 - Experiment references its flag with featureFlagKeyRef, which resolves the key from the FeatureFlag status; with a literal key PostHog created the flag first and the FeatureFlag then failed on a duplicate key.
 - allowUnknownEvents is true because the harness ingests no events and PostHog otherwise rejects metrics on unseen events.
-- Experiment status is a single object (state: running); uptest timeout set to 600s.
+- Experiment status is a single object (state: running).
 
 ## featureflag
 
