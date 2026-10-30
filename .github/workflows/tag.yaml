@@ -34,32 +34,32 @@ jobs:
       || github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'upstream/v')
     runs-on: ubuntu-24.04
     outputs:
-      configured: ${{ steps.check.outputs.configured }}
+      app: ${{ steps.check.outputs.app }}
     steps:
       - id: check
         env:
           APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
         run: |
-          missing=""
-          for name in APP_CLIENT_ID APP_PRIVATE_KEY; do
-            [ -n "${!name}" ] || missing="${missing} ${name}"
-          done
-          if [ -z "$missing" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$APP_CLIENT_ID" ] && [ -n "$APP_PRIVATE_KEY" ]; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::Skipped: repository secrets not configured:${missing}. See SPEC.md section 12 (one-time setup)."
+            echo "::notice::GitHub App secrets not configured: the tag is created with GITHUB_TOKEN and failures open no issue. See SPEC.md section 12."
           fi
 
   tag:
     needs: gate
-    if: needs.gate.outputs.configured == 'true'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     env:
       VERSION: ${{ inputs.version || github.event.pull_request.head.ref }}
       SHA: ${{ inputs.sha || github.event.pull_request.merge_commit_sha }}
     steps:
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        if: needs.gate.outputs.app == 'true'
         id: app
         with:
           client-id: ${{ secrets.APP_CLIENT_ID }}
@@ -68,19 +68,30 @@ jobs:
         with:
           persist-credentials: false
       - name: Normalize version
+        id: version
         run: |
-          version=${VERSION#upstream/}
-          echo "VERSION=${version#v}" >> "$GITHUB_ENV"
+          normalized=${VERSION#upstream/}
+          echo "VERSION=${normalized#v}" >> "$GITHUB_ENV"
+          echo "version=${normalized#v}" >> "$GITHUB_OUTPUT"
       - name: Create tag
         env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token || github.token }}
         run: hack/tag.sh "$VERSION" "$SHA"
-      - name: Dispatch publish
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-        run: gh workflow run publish-provider-package.yml -f version="$VERSION"
       - name: Open failure issue
-        if: failure()
+        if: failure() && needs.gate.outputs.app == 'true'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: hack/failure-issue.sh "$VERSION" tag release
+
+  publish:
+    needs: tag
+    permissions:
+      contents: write
+    uses: ./.github/workflows/publish-provider-package.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
+      XPKG_TOKEN: ${{ secrets.XPKG_TOKEN }}

@@ -13,7 +13,7 @@ kind: Provider
 metadata:
   name: provider-posthog
 spec:
-  package: xpkg.upbound.io/cliftonz/provider-posthog:v1.0.25
+  package: xpkg.upbound.io/cliftonz/provider-upjet-posthog:v1.0.25
 ```
 
 ## Configure

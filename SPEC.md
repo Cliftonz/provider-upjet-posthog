@@ -7,7 +7,7 @@
 | Item | Value |
 |---|---|
 | Source repository | `github.com/Cliftonz/provider-upjet-posthog` |
-| Package | `xpkg.upbound.io/cliftonz/provider-posthog` |
+| Package | `xpkg.upbound.io/cliftonz/provider-upjet-posthog` |
 | Upbound organization | `cliftonz` |
 | Upstream provider | registry `posthog/posthog`, Go module `github.com/posthog/terraform-provider` |
 | Embedded via | fork `github.com/Cliftonz/terraform-provider-posthog` (section 2) |
@@ -150,11 +150,11 @@ The template build submodule provides generation, the multi-arch (`linux/amd64`,
 |---|---|---|
 | `ci.yml` | push to `main`, pull_request | lint; generation leaves no diff; unit tests; image and xpkg build; example validation (server-side dry-run of `examples/namespaced` in kind); CRD breaking-change check against the latest release, including `v1alpha1` kinds, passing changes acknowledged in `hack/upstream-acks.yaml`, skipped when no release exists |
 | `e2e.yaml` | pull_request on `upstream/v*` and `upjet/*` branches; other PRs only with label `run-e2e`; `workflow_dispatch`; push to `main` runs only the snapshot and Go cache jobs | section 11; on `main`, saves the PostHog snapshot and the provider build cache that PRs restore |
-| `tag.yaml` | merge (closed and merged) of an `upstream/v*` PR; `workflow_dispatch` (version, SHA) | creates `v<version>` on the merge commit; skips if the tag exists at that SHA; fails with a `release` issue if it exists at another SHA |
-| `publish-provider-package.yml` | after `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image; pushes `xpkg.upbound.io/cliftonz/provider-posthog:<version>` unless it exists; creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then dispatches `upstream-tracking.yml` |
+| `tag.yaml` | merge (closed and merged) of an `upstream/v*` PR; `workflow_dispatch` (version, SHA) | creates `v<version>` on the merge commit; skips if the tag exists at that SHA; fails if it exists at another SHA, with a `release` issue when the App is configured; then calls `publish-provider-package.yml` as a reusable workflow |
+| `publish-provider-package.yml` | `workflow_call` from `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image, in a job that holds no registry credentials; a separate job holding the Upbound credentials pushes the built `.xpkg` files to `xpkg.upbound.io/cliftonz/provider-upjet-posthog:<version>` unless it exists; both skip with a `::notice::` without the Upbound secrets; creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then, with the App, dispatches `upstream-tracking.yml` |
 | `upstream-tracking.yml` | daily schedule, `workflow_dispatch`, successful publish | section 9 |
 
-Tracking, release (tag and publish), and e2e each run in their own `concurrency` group and authenticate with the GitHub App token (section 12), so their pushes, PRs, issues, and dispatches work and trigger downstream workflows. Reusable workflows receive secrets explicitly. These tag and publish workflows replace the template's, which push to ghcr and create no GitHub release.
+Tracking, tag (`release`), publish (`publish`), and e2e each run in their own `concurrency` group and authenticate with the GitHub App token (section 12), so their pushes, PRs, issues, and dispatches work and trigger downstream workflows. Tag and publish fall back to `GITHUB_TOKEN` without the App; tag calls publish with `workflow_call` because events created with `GITHUB_TOKEN` trigger no workflows. Reusable workflows receive secrets explicitly.
 
 Branch protection on `main` requires: generation diff clean, build, unit tests, example validation, CRD breaking-change check, and, on `upstream/v*` and `upjet/*` PRs, e2e.
 
@@ -186,7 +186,7 @@ Any failure, in any workflow, opens an issue, runs nothing after the failed step
 
 ## 10. Versioning and release
 
-Our version equals the upstream version it embeds; the same string is the git tag (`v<version>`, on `main`) and the OCI tag. There are no out-of-band releases: our own fixes, including upjet bumps and any code fix needed after a version is tagged, ship with the next upstream release. Releases come only from section 9, except the first, which uses `workflow_dispatch` of `tag.yaml` and `publish-provider-package.yml` after the bootstrap in section 12.
+Our version equals the upstream version it embeds; the same string is the git tag (`v<version>`, on `main`) and the OCI tag. There are no out-of-band releases: our own fixes, including upjet bumps and any code fix needed after a version is tagged, ship with the next upstream release. Releases come only from section 9, except the first, which uses `workflow_dispatch` of `tag.yaml`, which calls `publish-provider-package.yml`, after the bootstrap in section 12.
 
 ## 11. Testing strategy
 
@@ -212,13 +212,13 @@ Additional cases:
 Manual steps by the human:
 
 1. Create a GitHub App with contents, pull-requests, actions, and issues write permissions; install it on this repository and the fork; store its credentials as repository secrets. Enable "Allow auto-merge" on this repository. Run `hack/labels.sh` to create the issue labels.
-2. Create fork tag `v1.0.25-public` on `public-provider` after it passes the fork unit tests and external-import check.
-3. Create Upbound organization `cliftonz` and repository `provider-posthog`; create an Upbound robot token and store it as `XPKG_ACCESS_ID` and `XPKG_TOKEN`.
+2. Create fork tag `v1.0.25-public` on `public-provider` after it passes the fork unit tests and external-import check (done 2026-10-30).
+3. Create Upbound organization `cliftonz` and repository `provider-upjet-posthog` (done); create an Upbound robot token and store it as `XPKG_ACCESS_ID` and `XPKG_TOKEN` (done).
 4. Publish the first release (section 10).
 5. Request review in `#upbound` on Crossplane Slack with the repo URL, account, and repository name (unverified against Upbound docs).
-6. After approval, `up repository update provider-posthog --publish` (up v0.39.0 or later).
+6. After approval, `up repository update provider-upjet-posthog --publish` (up v0.39.0 or later).
 
-Until the App and Upbound secrets exist, a `gate` job makes the upstream tracking, tag and publish workflows skip with a `::notice::` naming the missing secrets, and the CI and e2e report jobs skip opening failure issues with a notice.
+Until the App secrets exist, a `gate` job makes upstream tracking skip with a `::notice::`, tag and publish use `GITHUB_TOKEN` and open no failure issues, and the CI and e2e report jobs skip opening failure issues with a notice. Until the Upbound secrets exist, publish builds, pushes, and releases nothing.
 
 `package/crossplane.yaml`:
 
