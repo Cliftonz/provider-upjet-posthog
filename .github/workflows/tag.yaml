@@ -87,6 +87,7 @@ jobs:
     needs: tag
     permissions:
       contents: write
+      packages: write
     uses: ./.github/workflows/publish-provider-package.yml
     with:
       version: ${{ needs.tag.outputs.version }}

@@ -2,12 +2,12 @@
 
 ## 1. Purpose and scope
 
-`provider-posthog` is a Crossplane v2 provider, generated with upjet, that manages PostHog configuration as Kubernetes managed resources. It embeds the official PostHog Terraform provider (`github.com/PostHog/terraform-provider-posthog`, terraform-plugin-framework, MPL-2.0) and is published to the Upbound Marketplace.
+`provider-posthog` is a Crossplane v2 provider, generated with upjet, that manages PostHog configuration as Kubernetes managed resources. It embeds the official PostHog Terraform provider (`github.com/PostHog/terraform-provider-posthog`, terraform-plugin-framework, MPL-2.0) and is published to GitHub Packages and the Upbound Marketplace.
 
 | Item | Value |
 |---|---|
 | Source repository | `github.com/Cliftonz/provider-upjet-posthog` |
-| Package | `xpkg.upbound.io/cliftonz/provider-upjet-posthog` |
+| Packages | `ghcr.io/cliftonz/provider-upjet-posthog`, `xpkg.upbound.io/cliftonz/provider-upjet-posthog` |
 | Upbound organization | `cliftonz` |
 | Upstream provider | registry `posthog/posthog`, Go module `github.com/posthog/terraform-provider` |
 | Embedded via | fork `github.com/Cliftonz/terraform-provider-posthog` (section 2) |
@@ -151,7 +151,7 @@ The template build submodule provides generation, the multi-arch (`linux/amd64`,
 | `ci.yml` | push to `main`, pull_request | lint; generation leaves no diff; unit tests; image and xpkg build; example validation (server-side dry-run of `examples/namespaced` in kind); CRD breaking-change check against the latest release, including `v1alpha1` kinds, passing changes acknowledged in `hack/upstream-acks.yaml`, skipped when no release exists |
 | `e2e.yaml` | pull_request on `upstream/v*` and `upjet/*` branches; other PRs only with label `run-e2e`; `workflow_dispatch`; push to `main` runs only the snapshot and Go cache jobs | section 11; on `main`, saves the PostHog snapshot and the provider build cache that PRs restore |
 | `tag.yaml` | merge (closed and merged) of an `upstream/v*` PR; `workflow_dispatch` (version, SHA) | creates `v<version>` on the merge commit; skips if the tag exists at that SHA; fails if it exists at another SHA, with a `release` issue when the App is configured; then calls `publish-provider-package.yml` as a reusable workflow |
-| `publish-provider-package.yml` | `workflow_call` from `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image, in a job that holds no registry credentials; a separate job holding the Upbound credentials pushes the built `.xpkg` files to `xpkg.upbound.io/cliftonz/provider-upjet-posthog:<version>` unless it exists; both skip with a `::notice::` without the Upbound secrets; creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then, with the App, dispatches `upstream-tracking.yml` |
+| `publish-provider-package.yml` | `workflow_call` from `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image, in a job that holds no registry credentials; separate jobs push the built `.xpkg` files with `hack/push-xpkg.sh` unless the tag exists, appending `extensions/icons/icon.svg` with `up xpkg append`: one holding only `GITHUB_TOKEN` with `packages: write` pushes to `ghcr.io/cliftonz/provider-upjet-posthog:<version>`, one holding only the Upbound credentials pushes to `xpkg.upbound.io/cliftonz/provider-upjet-posthog:<version>` and skips with a `::notice::` without the Upbound secrets; after the GHCR push, and regardless of Upbound, creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then, with the App, dispatches `upstream-tracking.yml` |
 | `upstream-tracking.yml` | daily schedule, `workflow_dispatch`, successful publish | section 9 |
 
 Tracking, tag (`release`), publish (`publish`), and e2e each run in their own `concurrency` group and authenticate with the GitHub App token (section 12), so their pushes, PRs, issues, and dispatches work and trigger downstream workflows. Tag and publish fall back to `GITHUB_TOKEN` without the App; tag calls publish with `workflow_call` because events created with `GITHUB_TOKEN` trigger no workflows. Reusable workflows receive secrets explicitly.
@@ -213,12 +213,12 @@ Manual steps by the human:
 
 1. Create a GitHub App with contents, pull-requests, actions, and issues write permissions; install it on this repository and the fork; store its credentials as repository secrets. Enable "Allow auto-merge" on this repository. Run `hack/labels.sh` to create the issue labels.
 2. Create fork tag `v1.0.25-public` on `public-provider` after it passes the fork unit tests and external-import check (done 2026-10-30).
-3. Create Upbound organization `cliftonz` and repository `provider-upjet-posthog` (done); create an Upbound robot token and store it as `XPKG_ACCESS_ID` and `XPKG_TOKEN` (done).
+3. Create Upbound organization `cliftonz` and repository `provider-upjet-posthog` (done); create a robot in `cliftonz`, give it a team with write permission on the repository, create a robot token and store its access ID as `XPKG_ACCESS_ID` and its token as `XPKG_TOKEN`. A personal access token is refused by `docker login xpkg.upbound.io`. Make the GHCR package public.
 4. Publish the first release (section 10).
 5. Request review in `#upbound` on Crossplane Slack with the repo URL, account, and repository name (unverified against Upbound docs).
 6. After approval, `up repository update provider-upjet-posthog --publish` (up v0.39.0 or later).
 
-Until the App secrets exist, a `gate` job makes upstream tracking skip with a `::notice::`, tag and publish use `GITHUB_TOKEN` and open no failure issues, and the CI and e2e report jobs skip opening failure issues with a notice. Until the Upbound secrets exist, publish builds, pushes, and releases nothing.
+Until the App secrets exist, a `gate` job makes upstream tracking skip with a `::notice::`, tag and publish use `GITHUB_TOKEN` and open no failure issues, and the CI and e2e report jobs skip opening failure issues with a notice. Until the Upbound secrets exist, publish pushes to GHCR and releases without the Upbound push.
 
 `package/crossplane.yaml`:
 
@@ -239,7 +239,7 @@ spec:
     version: ">=v2.0.0"
 ```
 
-The PostHog name is used descriptively only; no PostHog logo until PostHog grants permission.
+The PostHog name is used descriptively only; no PostHog logo until PostHog grants permission. The package icon, chosen by the human, is `extensions/icons/icon.svg` (the 1000x1000 PNG `dadd-ai-1.png` embedded in a square SVG), appended to each pushed package as Upbound Marketplace extensions and shown at the top of `README.md`.
 
 ## 13. Maintenance runbook
 
@@ -277,6 +277,6 @@ Automation and agents never file issues, open PRs, comment, or react on reposito
 - Tracking order, blocking, `skip`, run states, daily detection, gates, acknowledgements, failure issues: section 9.
 - Version equals upstream, no out-of-band releases, first release v1.0.25 without backfill: section 10.
 - e2e scope, cases, self-hosted harness, Crossplane version, `ExternalDataSource` exclusion, singleton cleanup: section 11 and `docs/decisions.md`.
-- GitHub App, bootstrap, manual Marketplace onboarding, license, descriptive name, no logo, maintainer contact: section 12.
+- GitHub App, bootstrap, manual Marketplace onboarding, license, descriptive name, no PostHog logo, package icon, maintainer contact: section 12.
 - Manual upjet bumps, issue handling: section 13.
 - Upstream engagement rules: section 14.

@@ -35,7 +35,6 @@ permissions:
 env:
   DOCKER_BUILDX_VERSION: 'v0.34.1'
   UPSTREAM_REPO: PostHog/terraform-provider-posthog
-  PACKAGE: xpkg.upbound.io/cliftonz/provider-upjet-posthog
   TAG: v${{ inputs.version }}
 
 jobs:
@@ -64,8 +63,6 @@ jobs:
           fi
 
   build:
-    needs: gate
-    if: needs.gate.outputs.upbound == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
@@ -99,47 +96,58 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  push:
+  ghcr:
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          ref: ${{ env.TAG }}
-          sparse-checkout: Makefile
+          sparse-checkout: |
+            Makefile
+            hack/push-xpkg.sh
+            extensions/icons/icon.svg
           sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: xpkg
           path: xpkg
-      - name: Install Crossplane CLI
-        run: |
-          version=$(sed -n 's/^CROSSPLANE_CLI_VERSION = //p' Makefile)
-          curl -fsSLo "$RUNNER_TEMP/crossplane" "https://releases.crossplane.io/stable/${version}/bin/linux_amd64/crank"
-          chmod +x "$RUNNER_TEMP/crossplane"
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - run: hack/push-xpkg.sh "ghcr.io/cliftonz/provider-upjet-posthog:${TAG}"
+
+  upbound:
+    needs: [gate, build]
+    if: needs.gate.outputs.upbound == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            Makefile
+            hack/push-xpkg.sh
+            extensions/icons/icon.svg
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: xpkg
+          path: xpkg
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: xpkg.upbound.io
           username: ${{ secrets.XPKG_ACCESS_ID }}
           password: ${{ secrets.XPKG_TOKEN }}
-      - name: Push
-        run: |
-          if out=$(docker buildx imagetools inspect "${PACKAGE}:${TAG}" 2>&1); then
-            echo "${PACKAGE}:${TAG} exists"
-          elif grep -q 'not found' <<< "$out"; then
-            files=()
-            for f in xpkg/*/provider-posthog-"$TAG".xpkg; do
-              files+=(--package-files "$f")
-            done
-            "$RUNNER_TEMP/crossplane" xpkg push "${files[@]}" "${PACKAGE}:${TAG}"
-          else
-            echo "$out" >&2
-            exit 1
-          fi
+      - run: hack/push-xpkg.sh "xpkg.upbound.io/cliftonz/provider-upjet-posthog:${TAG}"
 
   release:
-    needs: [gate, push]
+    needs: [gate, ghcr]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -170,7 +178,7 @@ jobs:
         run: gh workflow run upstream-tracking.yml
 
   report:
-    needs: [gate, build, push, release]
+    needs: [gate, build, ghcr, upbound, release]
     if: failure() && needs.gate.outputs.app == 'true'
     runs-on: ubuntu-24.04
     steps:

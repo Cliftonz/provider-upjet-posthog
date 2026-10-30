@@ -1,3 +1,5 @@
+<p align="center"><img src="extensions/icons/icon.svg" alt="provider-posthog icon" width="200"></p>
+
 # Provider PostHog
 
 `provider-posthog` is a Crossplane v2 provider, generated with
