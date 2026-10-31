@@ -13,7 +13,7 @@ require (
 	github.com/crossplane/upjet/v2 v2.5.1
 	github.com/google/go-cmp v0.7.0
 	github.com/pkg/errors v0.9.1
-	github.com/posthog/terraform-provider v1.0.26
+	github.com/posthog/terraform-provider v1.0.27
 	google.golang.org/grpc v1.83.2
 	k8s.io/api v0.36.3
 	k8s.io/apiextensions-apiserver v0.36.3
@@ -163,4 +163,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/posthog/terraform-provider => github.com/Cliftonz/terraform-provider-posthog v1.0.26-public
+replace github.com/posthog/terraform-provider => github.com/Cliftonz/terraform-provider-posthog v1.0.27-public

@@ -26,3 +26,49 @@ spec:
     name: Pricing page test
     status:
     - state: running
+
+---
+
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  annotations:
+    meta.upbound.io/example-id: experiment/v1alpha1/experiment
+  labels:
+    testing.upbound.io/example-name: onboarding
+  name: onboarding
+  namespace: crossplane-system
+spec:
+  forProvider:
+    filters: |-
+      ${jsonencode({
+          multivariate = { variants = [
+            { key = "control", rollout_percentage = 50 },
+            { key = "test", rollout_percentage = 50 },
+          ] }
+          groups = [{ properties = [], rollout_percentage = 100 }]
+        })}
+    key: onboarding-checklist
+
+---
+
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  annotations:
+    meta.upbound.io/example-id: experiment/v1alpha1/experiment
+  labels:
+    testing.upbound.io/example-name: pricing
+  name: pricing
+  namespace: crossplane-system
+spec:
+  forProvider:
+    filters: |-
+      ${jsonencode({
+          multivariate = { variants = [
+            { key = "control", name = "Original", rollout_percentage = 50 },
+            { key = "test", name = "Redesign", rollout_percentage = 50 },
+          ] }
+          groups = [{ properties = [], rollout_percentage = 100 }]
+        })}
+    key: pricing-page-test

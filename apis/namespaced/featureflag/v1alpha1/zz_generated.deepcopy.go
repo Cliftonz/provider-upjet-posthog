@@ -347,6 +347,16 @@ func (in *FeatureFlagInitParameters) DeepCopyInto(out *FeatureFlagInitParameters
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Archived != nil {
+		in, out := &in.Archived, &out.Archived
+		*out = new(bool)
+		**out = **in
+	}
+	if in.BucketingIdentifier != nil {
+		in, out := &in.BucketingIdentifier, &out.BucketingIdentifier
+		*out = new(string)
+		**out = **in
+	}
 	if in.CreateUsageDashboard != nil {
 		in, out := &in.CreateUsageDashboard, &out.CreateUsageDashboard
 		*out = new(bool)
@@ -360,6 +370,22 @@ func (in *FeatureFlagInitParameters) DeepCopyInto(out *FeatureFlagInitParameters
 	if in.EnsureExperienceContinuity != nil {
 		in, out := &in.EnsureExperienceContinuity, &out.EnsureExperienceContinuity
 		*out = new(bool)
+		**out = **in
+	}
+	if in.EvaluationContexts != nil {
+		in, out := &in.EvaluationContexts, &out.EvaluationContexts
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
+	}
+	if in.EvaluationRuntime != nil {
+		in, out := &in.EvaluationRuntime, &out.EvaluationRuntime
+		*out = new(string)
 		**out = **in
 	}
 	if in.Filters != nil {
@@ -377,6 +403,11 @@ func (in *FeatureFlagInitParameters) DeepCopyInto(out *FeatureFlagInitParameters
 				**out = **in
 			}
 		}
+	}
+	if in.IsRemoteConfiguration != nil {
+		in, out := &in.IsRemoteConfiguration, &out.IsRemoteConfiguration
+		*out = new(bool)
+		**out = **in
 	}
 	if in.Key != nil {
 		in, out := &in.Key, &out.Key
@@ -471,6 +502,16 @@ func (in *FeatureFlagObservation) DeepCopyInto(out *FeatureFlagObservation) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Archived != nil {
+		in, out := &in.Archived, &out.Archived
+		*out = new(bool)
+		**out = **in
+	}
+	if in.BucketingIdentifier != nil {
+		in, out := &in.BucketingIdentifier, &out.BucketingIdentifier
+		*out = new(string)
+		**out = **in
+	}
 	if in.CreateUsageDashboard != nil {
 		in, out := &in.CreateUsageDashboard, &out.CreateUsageDashboard
 		*out = new(bool)
@@ -484,6 +525,22 @@ func (in *FeatureFlagObservation) DeepCopyInto(out *FeatureFlagObservation) {
 	if in.EnsureExperienceContinuity != nil {
 		in, out := &in.EnsureExperienceContinuity, &out.EnsureExperienceContinuity
 		*out = new(bool)
+		**out = **in
+	}
+	if in.EvaluationContexts != nil {
+		in, out := &in.EvaluationContexts, &out.EvaluationContexts
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
+	}
+	if in.EvaluationRuntime != nil {
+		in, out := &in.EvaluationRuntime, &out.EvaluationRuntime
+		*out = new(string)
 		**out = **in
 	}
 	if in.Filters != nil {
@@ -506,6 +563,11 @@ func (in *FeatureFlagObservation) DeepCopyInto(out *FeatureFlagObservation) {
 				**out = **in
 			}
 		}
+	}
+	if in.IsRemoteConfiguration != nil {
+		in, out := &in.IsRemoteConfiguration, &out.IsRemoteConfiguration
+		*out = new(bool)
+		**out = **in
 	}
 	if in.Key != nil {
 		in, out := &in.Key, &out.Key
@@ -558,6 +620,16 @@ func (in *FeatureFlagParameters) DeepCopyInto(out *FeatureFlagParameters) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Archived != nil {
+		in, out := &in.Archived, &out.Archived
+		*out = new(bool)
+		**out = **in
+	}
+	if in.BucketingIdentifier != nil {
+		in, out := &in.BucketingIdentifier, &out.BucketingIdentifier
+		*out = new(string)
+		**out = **in
+	}
 	if in.CreateUsageDashboard != nil {
 		in, out := &in.CreateUsageDashboard, &out.CreateUsageDashboard
 		*out = new(bool)
@@ -571,6 +643,22 @@ func (in *FeatureFlagParameters) DeepCopyInto(out *FeatureFlagParameters) {
 	if in.EnsureExperienceContinuity != nil {
 		in, out := &in.EnsureExperienceContinuity, &out.EnsureExperienceContinuity
 		*out = new(bool)
+		**out = **in
+	}
+	if in.EvaluationContexts != nil {
+		in, out := &in.EvaluationContexts, &out.EvaluationContexts
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
+	}
+	if in.EvaluationRuntime != nil {
+		in, out := &in.EvaluationRuntime, &out.EvaluationRuntime
+		*out = new(string)
 		**out = **in
 	}
 	if in.Filters != nil {
@@ -588,6 +676,11 @@ func (in *FeatureFlagParameters) DeepCopyInto(out *FeatureFlagParameters) {
 				**out = **in
 			}
 		}
+	}
+	if in.IsRemoteConfiguration != nil {
+		in, out := &in.IsRemoteConfiguration, &out.IsRemoteConfiguration
+		*out = new(bool)
+		**out = **in
 	}
 	if in.Key != nil {
 		in, out := &in.Key, &out.Key

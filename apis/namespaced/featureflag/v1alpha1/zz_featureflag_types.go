@@ -15,31 +15,60 @@ import (
 
 type FeatureFlagInitParameters struct {
 
+	// (Boolean) Whether the feature flag is active
 	// Whether the feature flag is active
 	Active *bool `json:"active,omitempty" tf:"active,omitempty"`
 
+	// (Boolean) Whether the flag is archived and hidden from the default flag list. Archived flags must have active = false. Unarchiving does not enable the flag. When omitted, updates preserve the remote setting.
+	// Whether the flag is archived and hidden from the default flag list. Archived flags must have `active = false`. Unarchiving does not enable the flag. When omitted, updates preserve the remote setting.
+	Archived *bool `json:"archived,omitempty" tf:"archived,omitempty"`
+
+	// (String) Identifier used to assign rollout buckets and variants: distinct_id (the API default) or device_id. Device bucketing cannot be combined with ensure_experience_continuity = true. When omitted, updates preserve the remote setting.
+	// Identifier used to assign rollout buckets and variants: `distinct_id` (the API default) or `device_id`. Device bucketing cannot be combined with `ensure_experience_continuity = true`. When omitted, updates preserve the remote setting.
+	BucketingIdentifier *string `json:"bucketingIdentifier,omitempty" tf:"bucketing_identifier,omitempty"`
+
+	// time option. PostHog no longer creates a saved usage dashboard when a flag is created, so true is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
 	// Deprecated create-time option. PostHog no longer creates a saved usage dashboard when a flag is created, so `true` is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
 	CreateUsageDashboard *bool `json:"createUsageDashboard,omitempty" tf:"create_usage_dashboard,omitempty"`
 
+	// deleted.
 	// Whether the feature flag is soft-deleted.
 	Deleted *bool `json:"deleted,omitempty" tf:"deleted,omitempty"`
 
+	// side local evaluation; set this to false for flags that must be evaluated locally.
 	// Whether to persist the flag across authentication steps (PostHog's UI labels this as 'Persist flag across authentication steps'). Flags with experience continuity enabled cannot be evaluated by server-side local evaluation; set this to false for flags that must be evaluated locally.
 	EnsureExperienceContinuity *bool `json:"ensureExperienceContinuity,omitempty" tf:"ensure_experience_continuity,omitempty"`
 
+	// (Set of String) Contexts in which the flag evaluates, such as web or checkout. Use lowercase names without surrounding whitespace (up to 50 names, each 1–255 characters). Matching contexts must also be configured in the SDK. Omit to preserve existing contexts, or set [] to clear them where project policy permits. PostHog applies contexts only when evaluation contexts are enabled for your organization; otherwise the apply fails with an error that says so.
+	// Contexts in which the flag evaluates, such as `web` or `checkout`. Use lowercase names without surrounding whitespace (up to 50 names, each 1–255 characters). Matching contexts must also be configured in the SDK. Omit to preserve existing contexts, or set `[]` to clear them where project policy permits. PostHog applies contexts only when evaluation contexts are enabled for your organization; otherwise the apply fails with an error that says so.
+	// +listType=set
+	EvaluationContexts []*string `json:"evaluationContexts,omitempty" tf:"evaluation_contexts,omitempty"`
+
+	// side local evaluation.
+	// Where the flag is evaluated: `server`, `client`, or `all`. PostHog defaults new flags to `all`. When omitted, the existing runtime is preserved, including on import; updates leave it unknown until the API response so a saved plan cannot overwrite a newer remote value. This controls remote evaluation; it does not restrict server-side local evaluation.
+	EvaluationRuntime *string `json:"evaluationRuntime,omitempty" tf:"evaluation_runtime,omitempty"`
+
+	// level keys listed in ignore_filter_fields and an undeclared feature_enrollment marker owned by Early Access Features.
 	// Feature flag filters as JSON. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Fields present in the API response but absent from this config are kept in state so remote changes surface as drift — except the top-level keys listed in `ignore_filter_fields` and an undeclared `feature_enrollment` marker owned by Early Access Features.
 	Filters *string `json:"filters,omitempty" tf:"filters,omitempty"`
 
-	// When unset, defaults to the keys other PostHog products wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups", "holdout"]` (Early Access Features and Experiments). Set to `[]` to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside `filters` is always tracked (explicit config wins over the ignore list).
+	// When unset, defaults to the keys other PostHog products wire into a flag — ["feature_enrollment", "super_groups", "holdout_groups", "holdout"] (Early Access Features and Experiments). Set to [] to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside filters is always tracked (explicit config wins over the ignore list). When unset, defaults to the keys other PostHog products wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups", "holdout"]` (Early Access Features and Experiments). Set to `[]` to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside `filters` is always tracked (explicit config wins over the ignore list).
 	// +listType=set
 	IgnoreFilterFields []*string `json:"ignoreFilterFields,omitempty" tf:"ignore_filter_fields,omitempty"`
 
+	// level rollout_percentage must match the first group when both are configured. When omitted, updates preserve the remote setting.
+	// Whether the flag delivers remote configuration. Payloads are configured through `filters.payloads`. On creation, PostHog defaults missing or zero rollout percentages to 100; when supplying filters, provide explicit nonzero group rollout percentages. A top-level `rollout_percentage` must match the first group when both are configured. When omitted, updates preserve the remote setting.
+	IsRemoteConfiguration *bool `json:"isRemoteConfiguration,omitempty" tf:"is_remote_configuration,omitempty"`
+
+	// (String) Feature flag key (unique identifier)
 	// Feature flag key (unique identifier)
 	Key *string `json:"key,omitempty" tf:"key,omitempty"`
 
-	// Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags.
+	// (String) Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags. Empty strings are preserved.
+	// Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags. Empty strings are preserved.
 	Name *string `json:"name,omitempty" tf:"name,omitempty"`
 
+	// level project_id.
 	// Project ID (environment) for this resource. Overrides the provider-level project_id.
 	// +crossplane:generate:reference:type=github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/project/v1alpha1.Project
 	ProjectID *string `json:"projectId,omitempty" tf:"project_id,omitempty"`
@@ -52,89 +81,157 @@ type FeatureFlagInitParameters struct {
 	// +kubebuilder:validation:Optional
 	ProjectIDSelector *v2.NamespacedSelector `json:"projectIdSelector,omitempty" tf:"-"`
 
-	// Rollout percentage (0-100)
+	// 100) of the flag's first release condition (filters.groups[0]). Without filters, changing it changes only that condition's rollout and keeps the flag's other conditions, targeting, variants and payloads, so a flag created in the PostHog UI and imported keeps its targeting. With filters, leave it out or set it to the first condition's rollout_percentage.
+	// Rollout percentage (0-100) of the flag's first release condition (`filters.groups[0]`). Without `filters`, changing it changes only that condition's rollout and keeps the flag's other conditions, targeting, variants and payloads, so a flag created in the PostHog UI and imported keeps its targeting. With `filters`, leave it out or set it to the first condition's `rollout_percentage`.
 	RolloutPercentage *float64 `json:"rolloutPercentage,omitempty" tf:"rollout_percentage,omitempty"`
 
-	// Set of tags for the feature flag
+	// (Set of String) Set of tags for the feature flag. When omitted, the flag keeps the tags it has in PostHog; set [] to remove them.
+	// Set of tags for the feature flag. When omitted, the flag keeps the tags it has in PostHog; set `[]` to remove them.
 	// +listType=set
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 }
 
 type FeatureFlagObservation struct {
 
+	// (Boolean) Whether the feature flag is active
 	// Whether the feature flag is active
 	Active *bool `json:"active,omitempty" tf:"active,omitempty"`
 
+	// (Boolean) Whether the flag is archived and hidden from the default flag list. Archived flags must have active = false. Unarchiving does not enable the flag. When omitted, updates preserve the remote setting.
+	// Whether the flag is archived and hidden from the default flag list. Archived flags must have `active = false`. Unarchiving does not enable the flag. When omitted, updates preserve the remote setting.
+	Archived *bool `json:"archived,omitempty" tf:"archived,omitempty"`
+
+	// (String) Identifier used to assign rollout buckets and variants: distinct_id (the API default) or device_id. Device bucketing cannot be combined with ensure_experience_continuity = true. When omitted, updates preserve the remote setting.
+	// Identifier used to assign rollout buckets and variants: `distinct_id` (the API default) or `device_id`. Device bucketing cannot be combined with `ensure_experience_continuity = true`. When omitted, updates preserve the remote setting.
+	BucketingIdentifier *string `json:"bucketingIdentifier,omitempty" tf:"bucketing_identifier,omitempty"`
+
+	// time option. PostHog no longer creates a saved usage dashboard when a flag is created, so true is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
 	// Deprecated create-time option. PostHog no longer creates a saved usage dashboard when a flag is created, so `true` is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
 	CreateUsageDashboard *bool `json:"createUsageDashboard,omitempty" tf:"create_usage_dashboard,omitempty"`
 
+	// deleted.
 	// Whether the feature flag is soft-deleted.
 	Deleted *bool `json:"deleted,omitempty" tf:"deleted,omitempty"`
 
+	// side local evaluation; set this to false for flags that must be evaluated locally.
 	// Whether to persist the flag across authentication steps (PostHog's UI labels this as 'Persist flag across authentication steps'). Flags with experience continuity enabled cannot be evaluated by server-side local evaluation; set this to false for flags that must be evaluated locally.
 	EnsureExperienceContinuity *bool `json:"ensureExperienceContinuity,omitempty" tf:"ensure_experience_continuity,omitempty"`
 
+	// (Set of String) Contexts in which the flag evaluates, such as web or checkout. Use lowercase names without surrounding whitespace (up to 50 names, each 1–255 characters). Matching contexts must also be configured in the SDK. Omit to preserve existing contexts, or set [] to clear them where project policy permits. PostHog applies contexts only when evaluation contexts are enabled for your organization; otherwise the apply fails with an error that says so.
+	// Contexts in which the flag evaluates, such as `web` or `checkout`. Use lowercase names without surrounding whitespace (up to 50 names, each 1–255 characters). Matching contexts must also be configured in the SDK. Omit to preserve existing contexts, or set `[]` to clear them where project policy permits. PostHog applies contexts only when evaluation contexts are enabled for your organization; otherwise the apply fails with an error that says so.
+	// +listType=set
+	EvaluationContexts []*string `json:"evaluationContexts,omitempty" tf:"evaluation_contexts,omitempty"`
+
+	// side local evaluation.
+	// Where the flag is evaluated: `server`, `client`, or `all`. PostHog defaults new flags to `all`. When omitted, the existing runtime is preserved, including on import; updates leave it unknown until the API response so a saved plan cannot overwrite a newer remote value. This controls remote evaluation; it does not restrict server-side local evaluation.
+	EvaluationRuntime *string `json:"evaluationRuntime,omitempty" tf:"evaluation_runtime,omitempty"`
+
+	// level keys listed in ignore_filter_fields and an undeclared feature_enrollment marker owned by Early Access Features.
 	// Feature flag filters as JSON. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Fields present in the API response but absent from this config are kept in state so remote changes surface as drift — except the top-level keys listed in `ignore_filter_fields` and an undeclared `feature_enrollment` marker owned by Early Access Features.
 	Filters *string `json:"filters,omitempty" tf:"filters,omitempty"`
 
+	// (Number) Feature Flag ID
 	ID *string `json:"id,omitempty" tf:"id,omitempty"`
 
-	// When unset, defaults to the keys other PostHog products wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups", "holdout"]` (Early Access Features and Experiments). Set to `[]` to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside `filters` is always tracked (explicit config wins over the ignore list).
+	// When unset, defaults to the keys other PostHog products wire into a flag — ["feature_enrollment", "super_groups", "holdout_groups", "holdout"] (Early Access Features and Experiments). Set to [] to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside filters is always tracked (explicit config wins over the ignore list). When unset, defaults to the keys other PostHog products wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups", "holdout"]` (Early Access Features and Experiments). Set to `[]` to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside `filters` is always tracked (explicit config wins over the ignore list).
 	// +listType=set
 	IgnoreFilterFields []*string `json:"ignoreFilterFields,omitempty" tf:"ignore_filter_fields,omitempty"`
 
+	// level rollout_percentage must match the first group when both are configured. When omitted, updates preserve the remote setting.
+	// Whether the flag delivers remote configuration. Payloads are configured through `filters.payloads`. On creation, PostHog defaults missing or zero rollout percentages to 100; when supplying filters, provide explicit nonzero group rollout percentages. A top-level `rollout_percentage` must match the first group when both are configured. When omitted, updates preserve the remote setting.
+	IsRemoteConfiguration *bool `json:"isRemoteConfiguration,omitempty" tf:"is_remote_configuration,omitempty"`
+
+	// (String) Feature flag key (unique identifier)
 	// Feature flag key (unique identifier)
 	Key *string `json:"key,omitempty" tf:"key,omitempty"`
 
-	// Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags.
+	// (String) Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags. Empty strings are preserved.
+	// Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags. Empty strings are preserved.
 	Name *string `json:"name,omitempty" tf:"name,omitempty"`
 
+	// level project_id.
 	// Project ID (environment) for this resource. Overrides the provider-level project_id.
 	ProjectID *string `json:"projectId,omitempty" tf:"project_id,omitempty"`
 
-	// Rollout percentage (0-100)
+	// 100) of the flag's first release condition (filters.groups[0]). Without filters, changing it changes only that condition's rollout and keeps the flag's other conditions, targeting, variants and payloads, so a flag created in the PostHog UI and imported keeps its targeting. With filters, leave it out or set it to the first condition's rollout_percentage.
+	// Rollout percentage (0-100) of the flag's first release condition (`filters.groups[0]`). Without `filters`, changing it changes only that condition's rollout and keeps the flag's other conditions, targeting, variants and payloads, so a flag created in the PostHog UI and imported keeps its targeting. With `filters`, leave it out or set it to the first condition's `rollout_percentage`.
 	RolloutPercentage *float64 `json:"rolloutPercentage,omitempty" tf:"rollout_percentage,omitempty"`
 
-	// Set of tags for the feature flag
+	// (Set of String) Set of tags for the feature flag. When omitted, the flag keeps the tags it has in PostHog; set [] to remove them.
+	// Set of tags for the feature flag. When omitted, the flag keeps the tags it has in PostHog; set `[]` to remove them.
 	// +listType=set
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
 }
 
 type FeatureFlagParameters struct {
 
+	// (Boolean) Whether the feature flag is active
 	// Whether the feature flag is active
 	// +kubebuilder:validation:Optional
 	Active *bool `json:"active,omitempty" tf:"active,omitempty"`
 
+	// (Boolean) Whether the flag is archived and hidden from the default flag list. Archived flags must have active = false. Unarchiving does not enable the flag. When omitted, updates preserve the remote setting.
+	// Whether the flag is archived and hidden from the default flag list. Archived flags must have `active = false`. Unarchiving does not enable the flag. When omitted, updates preserve the remote setting.
+	// +kubebuilder:validation:Optional
+	Archived *bool `json:"archived,omitempty" tf:"archived,omitempty"`
+
+	// (String) Identifier used to assign rollout buckets and variants: distinct_id (the API default) or device_id. Device bucketing cannot be combined with ensure_experience_continuity = true. When omitted, updates preserve the remote setting.
+	// Identifier used to assign rollout buckets and variants: `distinct_id` (the API default) or `device_id`. Device bucketing cannot be combined with `ensure_experience_continuity = true`. When omitted, updates preserve the remote setting.
+	// +kubebuilder:validation:Optional
+	BucketingIdentifier *string `json:"bucketingIdentifier,omitempty" tf:"bucketing_identifier,omitempty"`
+
+	// time option. PostHog no longer creates a saved usage dashboard when a flag is created, so true is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
 	// Deprecated create-time option. PostHog no longer creates a saved usage dashboard when a flag is created, so `true` is rejected for new flags instead of silently doing nothing. Omit this attribute for new configurations. Existing flags with this setting remain readable, and usage charts are available on the flag's Usage tab.
 	// +kubebuilder:validation:Optional
 	CreateUsageDashboard *bool `json:"createUsageDashboard,omitempty" tf:"create_usage_dashboard,omitempty"`
 
+	// deleted.
 	// Whether the feature flag is soft-deleted.
 	// +kubebuilder:validation:Optional
 	Deleted *bool `json:"deleted,omitempty" tf:"deleted,omitempty"`
 
+	// side local evaluation; set this to false for flags that must be evaluated locally.
 	// Whether to persist the flag across authentication steps (PostHog's UI labels this as 'Persist flag across authentication steps'). Flags with experience continuity enabled cannot be evaluated by server-side local evaluation; set this to false for flags that must be evaluated locally.
 	// +kubebuilder:validation:Optional
 	EnsureExperienceContinuity *bool `json:"ensureExperienceContinuity,omitempty" tf:"ensure_experience_continuity,omitempty"`
 
+	// (Set of String) Contexts in which the flag evaluates, such as web or checkout. Use lowercase names without surrounding whitespace (up to 50 names, each 1–255 characters). Matching contexts must also be configured in the SDK. Omit to preserve existing contexts, or set [] to clear them where project policy permits. PostHog applies contexts only when evaluation contexts are enabled for your organization; otherwise the apply fails with an error that says so.
+	// Contexts in which the flag evaluates, such as `web` or `checkout`. Use lowercase names without surrounding whitespace (up to 50 names, each 1–255 characters). Matching contexts must also be configured in the SDK. Omit to preserve existing contexts, or set `[]` to clear them where project policy permits. PostHog applies contexts only when evaluation contexts are enabled for your organization; otherwise the apply fails with an error that says so.
+	// +kubebuilder:validation:Optional
+	// +listType=set
+	EvaluationContexts []*string `json:"evaluationContexts,omitempty" tf:"evaluation_contexts,omitempty"`
+
+	// side local evaluation.
+	// Where the flag is evaluated: `server`, `client`, or `all`. PostHog defaults new flags to `all`. When omitted, the existing runtime is preserved, including on import; updates leave it unknown until the API response so a saved plan cannot overwrite a newer remote value. This controls remote evaluation; it does not restrict server-side local evaluation.
+	// +kubebuilder:validation:Optional
+	EvaluationRuntime *string `json:"evaluationRuntime,omitempty" tf:"evaluation_runtime,omitempty"`
+
+	// level keys listed in ignore_filter_fields and an undeclared feature_enrollment marker owned by Early Access Features.
 	// Feature flag filters as JSON. Compared semantically, so key ordering and whitespace differences from the PostHog API do not produce a diff. Fields present in the API response but absent from this config are kept in state so remote changes surface as drift — except the top-level keys listed in `ignore_filter_fields` and an undeclared `feature_enrollment` marker owned by Early Access Features.
 	// +kubebuilder:validation:Optional
 	Filters *string `json:"filters,omitempty" tf:"filters,omitempty"`
 
-	// When unset, defaults to the keys other PostHog products wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups", "holdout"]` (Early Access Features and Experiments). Set to `[]` to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside `filters` is always tracked (explicit config wins over the ignore list).
+	// When unset, defaults to the keys other PostHog products wire into a flag — ["feature_enrollment", "super_groups", "holdout_groups", "holdout"] (Early Access Features and Experiments). Set to [] to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside filters is always tracked (explicit config wins over the ignore list). When unset, defaults to the keys other PostHog products wire into a flag — `["feature_enrollment", "super_groups", "holdout_groups", "holdout"]` (Early Access Features and Experiments). Set to `[]` to track other filter keys, including Experiment wiring, or provide your own set to replace the default. A key you also declare inside `filters` is always tracked (explicit config wins over the ignore list).
 	// +kubebuilder:validation:Optional
 	// +listType=set
 	IgnoreFilterFields []*string `json:"ignoreFilterFields,omitempty" tf:"ignore_filter_fields,omitempty"`
 
+	// level rollout_percentage must match the first group when both are configured. When omitted, updates preserve the remote setting.
+	// Whether the flag delivers remote configuration. Payloads are configured through `filters.payloads`. On creation, PostHog defaults missing or zero rollout percentages to 100; when supplying filters, provide explicit nonzero group rollout percentages. A top-level `rollout_percentage` must match the first group when both are configured. When omitted, updates preserve the remote setting.
+	// +kubebuilder:validation:Optional
+	IsRemoteConfiguration *bool `json:"isRemoteConfiguration,omitempty" tf:"is_remote_configuration,omitempty"`
+
+	// (String) Feature flag key (unique identifier)
 	// Feature flag key (unique identifier)
 	// +kubebuilder:validation:Optional
 	Key *string `json:"key,omitempty" tf:"key,omitempty"`
 
-	// Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags.
+	// (String) Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags. Empty strings are preserved.
+	// Feature flag name/description (PostHog's UI labels this as 'Description'). The API does not expose a separate dedicated description field for feature flags. Empty strings are preserved.
 	// +kubebuilder:validation:Optional
 	Name *string `json:"name,omitempty" tf:"name,omitempty"`
 
+	// level project_id.
 	// Project ID (environment) for this resource. Overrides the provider-level project_id.
 	// +crossplane:generate:reference:type=github.com/Cliftonz/provider-upjet-posthog/apis/namespaced/project/v1alpha1.Project
 	// +kubebuilder:validation:Optional
@@ -148,11 +245,13 @@ type FeatureFlagParameters struct {
 	// +kubebuilder:validation:Optional
 	ProjectIDSelector *v2.NamespacedSelector `json:"projectIdSelector,omitempty" tf:"-"`
 
-	// Rollout percentage (0-100)
+	// 100) of the flag's first release condition (filters.groups[0]). Without filters, changing it changes only that condition's rollout and keeps the flag's other conditions, targeting, variants and payloads, so a flag created in the PostHog UI and imported keeps its targeting. With filters, leave it out or set it to the first condition's rollout_percentage.
+	// Rollout percentage (0-100) of the flag's first release condition (`filters.groups[0]`). Without `filters`, changing it changes only that condition's rollout and keeps the flag's other conditions, targeting, variants and payloads, so a flag created in the PostHog UI and imported keeps its targeting. With `filters`, leave it out or set it to the first condition's `rollout_percentage`.
 	// +kubebuilder:validation:Optional
 	RolloutPercentage *float64 `json:"rolloutPercentage,omitempty" tf:"rollout_percentage,omitempty"`
 
-	// Set of tags for the feature flag
+	// (Set of String) Set of tags for the feature flag. When omitted, the flag keeps the tags it has in PostHog; set [] to remove them.
+	// Set of tags for the feature flag. When omitted, the flag keeps the tags it has in PostHog; set `[]` to remove them.
 	// +kubebuilder:validation:Optional
 	// +listType=set
 	Tags []*string `json:"tags,omitempty" tf:"tags,omitempty"`
@@ -185,7 +284,7 @@ type FeatureFlagStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// FeatureFlag is the Schema for the FeatureFlags API. <no value>
+// FeatureFlag is the Schema for the FeatureFlags API. PostHog Feature Flag resource
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

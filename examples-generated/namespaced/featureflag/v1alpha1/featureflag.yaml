@@ -1,0 +1,17 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/featureflag
+  labels:
+    testing.upbound.io/example-name: backend_rollout
+  name: backend-rollout
+  namespace: crossplane-system
+spec:
+  forProvider:
+    evaluationContexts:
+    - api
+    evaluationRuntime: server
+    key: backend-rollout
+    name: ""
+    rolloutPercentage: 50

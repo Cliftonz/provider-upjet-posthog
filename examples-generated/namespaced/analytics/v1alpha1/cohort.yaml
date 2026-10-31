@@ -24,3 +24,34 @@ spec:
           }
         })}
     name: Internal users
+
+---
+
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/cohort
+  labels:
+    testing.upbound.io/example-name: beta_feature
+  name: beta-feature
+  namespace: crossplane-system
+spec:
+  forProvider:
+    active: true
+    filters: |-
+      ${jsonencode({
+          groups = [
+            {
+              properties = [
+                {
+                  type  = "cohort"
+                  key   = "id"
+                  value = posthog_cohort.beta_testers.id
+                }
+              ]
+              rollout_percentage = 100
+            }
+          ]
+        })}
+    key: beta-feature
