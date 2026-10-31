@@ -15,7 +15,7 @@ kind: Provider
 metadata:
   name: provider-posthog
 spec:
-  package: xpkg.upbound.io/cliftonz/provider-upjet-posthog:v1.0.25
+  package: xpkg.upbound.io/cliftonz/provider-upjet-posthog:v1.0.27
 ```
 
 The same package is also published to GitHub Packages as
