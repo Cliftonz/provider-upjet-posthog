@@ -30,6 +30,7 @@ jobs:
       || startsWith(github.head_ref, 'upjet/')
       || contains(github.event.pull_request.labels.*.name, 'run-e2e'))
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     steps:
       - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
@@ -64,6 +65,7 @@ jobs:
           path: ~/.cache/posthog-e2e
           key: posthog-snapshot-${{ hashFiles('test/harness/images.env', 'test/harness/bootstrap.py', 'test/harness/manifests/**') }}
       - name: Run e2e
+        timeout-minutes: 75
         run: hack/e2e.sh
 
   snapshot:
