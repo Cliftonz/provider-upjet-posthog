@@ -15,10 +15,11 @@ kind: Provider
 metadata:
   name: provider-posthog
 spec:
-  package: ghcr.io/cliftonz/provider-upjet-posthog:v1.0.25
+  package: xpkg.upbound.io/cliftonz/provider-upjet-posthog:v1.0.25
 ```
 
-The same package will also be on `xpkg.upbound.io/cliftonz/provider-upjet-posthog` once the Upbound robot token is configured.
+The same package is also published to GitHub Packages as
+`ghcr.io/cliftonz/provider-upjet-posthog`.
 
 ## Configure
 
