@@ -87,12 +87,22 @@ for lane in "${LANES[@]}"; do
 done
 phase provider-install
 
+diagnose() {
+  kubectl get managed -o wide
+  kubectl -n crossplane-system logs -l pkg.crossplane.io/provider=provider-posthog --tail=200
+  KUBECONFIG="$PWD/_output/lanes/$CLUSTER.kubeconfig" kubectl -n posthog get pods -o custom-columns=NAME:.metadata.name,READY:.status.containerStatuses[*].ready,RESTARTS:.status.containerStatuses[*].restartCount,LAST:.status.containerStatuses[*].lastState.terminated.reason,EXIT:.status.containerStatuses[*].lastState.terminated.exitCode
+  KUBECONFIG="$PWD/_output/lanes/$CLUSTER.kubeconfig" kubectl -n posthog get events --sort-by=.lastTimestamp | tail -50
+  free -m
+}
+
 run_lane() (
   export KUBECONFIG="$PWD/_output/lanes/$1.kubeconfig"
   while read -r _ examples; do
     for example in $examples; do
       if ! make uptest UPTEST_EXAMPLE_LIST="$example" UPTEST_ARGS="--test-directory=$PWD/_output/uptest/$1" 2>&1 | sed "s/^/[$1] /"; then
         echo "$example" >> "_output/lanes/$1.failed"
+        diagnose 2>&1 | sed "s/^/[$1] /"
+        break 2
       fi
     done
   done < "_output/lanes/$1.jobs"
