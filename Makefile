@@ -12,8 +12,8 @@ TERRAFORM_VERSION_VALID := $(shell [ "$(TERRAFORM_VERSION)" = "`printf "$(TERRAF
 
 export TERRAFORM_PROVIDER_SOURCE ?= posthog/posthog
 export TERRAFORM_PROVIDER_REPO ?= https://github.com/Cliftonz/terraform-provider-posthog
-export TERRAFORM_PROVIDER_VERSION ?= 1.0.25
-export TERRAFORM_PROVIDER_REF ?= v1.0.25-public
+export TERRAFORM_PROVIDER_VERSION ?= 1.0.26
+export TERRAFORM_PROVIDER_REF ?= v1.0.26-public
 export TERRAFORM_PROVIDER_MODULE ?= github.com/posthog/terraform-provider
 export TERRAFORM_DOCS_PATH ?= docs/resources
 
