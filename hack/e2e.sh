@@ -32,7 +32,10 @@ OBSERVED_INSIGHT_ID: "$observed_insight_id"
 EOF
 
 CLUSTER="${E2E_CLUSTER:-posthog-e2e}"
-LANES=("$CLUSTER" "$CLUSTER-lane1" "$CLUSTER-lane2")
+LANES=("$CLUSTER")
+for i in $(seq 1 $((${E2E_LANES:-3} - 1))); do
+  LANES+=("$CLUSTER-lane$i")
+done
 UPTEST_CLOUD_CREDENTIALS="$(jq -n --arg api_key "$POSTHOG_API_KEY" --arg host "http://$CLUSTER-control-plane:30800" \
   --arg organization_id "$POSTHOG_ORGANIZATION_ID" --arg project_id "$POSTHOG_PROJECT_ID" \
   '{$api_key, $host, $organization_id, $project_id}')"
