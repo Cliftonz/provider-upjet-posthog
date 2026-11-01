@@ -183,18 +183,16 @@ e2e-local:
 e2e-example:
 	@E2E_EXAMPLES="$(EXAMPLE)" E2E_LANES=1 hack/e2e.sh
 
-RELEASE_CLUSTER ?= posthog-release
-RELEASE_PORT ?= 30802
 e2e-release:
-	@E2E_CLUSTER=$(RELEASE_CLUSTER) POSTHOG_PORT=$(RELEASE_PORT) hack/harness-fresh.sh hack/e2e-release.sh $(VERSION)
+	$(if $(filter command line environment,$(origin VERSION)),,$(error VERSION is required, e.g. VERSION=v1.0.27))
+	@E2E_CLUSTER=posthog-release POSTHOG_PORT=30802 hack/harness-fresh.sh hack/e2e-release.sh $(VERSION)
 
 install-check:
+	$(if $(filter command line environment,$(origin VERSION)),,$(error VERSION is required, e.g. VERSION=v1.0.27))
 	@hack/install-check.sh $(VERSION)
 
-SNAPSHOT_CLUSTER ?= posthog-snapshot
-SNAPSHOT_PORT ?= 30803
 harness-snapshot-check:
-	@E2E_CLUSTER=$(SNAPSHOT_CLUSTER) POSTHOG_PORT=$(SNAPSHOT_PORT) hack/snapshot-check.sh
+	@E2E_CLUSTER=posthog-snapshot POSTHOG_PORT=30803 hack/snapshot-check.sh
 
 simulate-tracking:
 	@hack/simulate-tracking.sh
@@ -207,7 +205,9 @@ BATS := $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)/bin/bats
 $(BATS):
 	@$(INFO) installing bats $(BATS_VERSION)
 	@mkdir -p $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)
-	@curl -fsSL https://github.com/bats-core/bats-core/archive/refs/tags/$(BATS_VERSION).tar.gz | tar -xz --strip-components=1 -C $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)
+	@curl -fsSLo $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION).tar.gz https://github.com/bats-core/bats-core/archive/refs/tags/$(BATS_VERSION).tar.gz
+	@echo "5c57ed9616b78f7fd8c553b9bae3c7c9870119edd727ec17dbd1185c599f79d9  $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION).tar.gz" | sha256sum -c -
+	@tar -xzf $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION).tar.gz --strip-components=1 -C $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)
 	@$(OK) installing bats $(BATS_VERSION)
 
 repo-checks:
