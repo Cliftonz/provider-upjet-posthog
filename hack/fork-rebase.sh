@@ -12,7 +12,7 @@ hack=$(dirname "$(realpath "$0")")
 
 git -C "$fork" fetch "https://github.com/${UPSTREAM_REPO}.git" "refs/tags/v${version}:refs/upstream/v${version}"
 git -C "$fork" switch public-provider
-git -C "$fork" rebase "refs/upstream/v${version}"
+git -C "$fork" -c merge.directoryRenames=false rebase "refs/upstream/v${version}"
 
 if [ -d "$fork/internal/provider" ]; then
   (cd "$fork" && git mv internal/provider/* provider/)
