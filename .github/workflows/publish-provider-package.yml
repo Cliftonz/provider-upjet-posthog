@@ -133,6 +133,7 @@ jobs:
           sparse-checkout: |
             Makefile
             hack/push-xpkg.sh
+            hack/diagnose-upbound.sh
             extensions/icons/icon.svg
           sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -145,6 +146,18 @@ jobs:
           username: ${{ secrets.XPKG_ACCESS_ID }}
           password: ${{ secrets.XPKG_TOKEN }}
       - run: hack/push-xpkg.sh "xpkg.upbound.io/cliftonz/provider-upjet-posthog:${TAG}"
+      - name: Diagnose Upbound credentials
+        if: failure()
+        env:
+          XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
+          XPKG_TOKEN: ${{ secrets.XPKG_TOKEN }}
+        run: hack/diagnose-upbound.sh
+
+  release-check:
+    needs: [upbound, release]
+    uses: ./.github/workflows/release-check.yml
+    with:
+      version: ${{ inputs.version }}
 
   release:
     needs: [gate, ghcr]
