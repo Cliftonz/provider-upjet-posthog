@@ -30,6 +30,8 @@ spec:
       {"backgroundColor":"#eeeeee"}
     questionsJson: |
       [{"type":"rating","question":"How would you rate your experience?","scale":10,"buttonText":"Submit","isNpsQuestion":true}]
+    targetingFlagFiltersJson: |
+      {"groups":[{"properties":[],"rollout_percentage":50}]}
     conditionsJson: |
       {"url":"https://example.com/*"}
   providerConfigRef:

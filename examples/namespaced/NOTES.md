@@ -97,5 +97,4 @@
 - logs AlertDestination slackChannelId, slackChannelName and slackWorkspaceId: need a Slack integration.
 - project Member role: see project above.
 - Survey archived, formContentJson, translationsJson, linkedFlagId, linkedInsightId and targetingFlagId: the fork documents no shape for formContentJson and translationsJson; the others were not added in this pass.
-- Survey targetingFlagFiltersJson: with v1.0.27 the survey is created with its targeting flag, but every later update fails with 400 "Targeting Feature Flag with this ID does not exist", so the MR never syncs after the update step (seen on posthog-release). Left out until the provider is fixed.
 - AccessControl organizationMember and resourceId: member-scoped and object-scoped rules; not added in this pass.
