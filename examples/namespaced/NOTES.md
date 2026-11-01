@@ -78,6 +78,10 @@
 ## survey
 
 - Survey example omits linkedFlagIdRef to stay minimal.
+- The update changes targetingFlagFiltersJson from rollout 50 to 75; the hook asserts PostHog updated the targeting flag in place, keeping its id.
+- Known limitation: removing targetingFlagFiltersJson from the spec leaves the targeting flag in PostHog: targeting_flag_id is null while the filters are set, so the fork returns early without removing the flag.
+- Known limitation: setting both targetingFlagId and targetingFlagFiltersJson is unsupported; the fork does not refresh targetingFlagId from the response while the filters are set.
+- Import leaves targeting_flag_id mapped from the response targeting flag id; the import step passes.
 
 ## warehouse
 
