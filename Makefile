@@ -210,11 +210,14 @@ $(BATS):
 	@curl -fsSL https://github.com/bats-core/bats-core/archive/refs/tags/$(BATS_VERSION).tar.gz | tar -xz --strip-components=1 -C $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)
 	@$(OK) installing bats $(BATS_VERSION)
 
+repo-checks:
+	@hack/repo-checks.sh
+
 test-scripts: $(BATS)
 	@git ls-files '*.sh' | xargs shellcheck
 	@$(BATS) test/scripts
 
-.PHONY: submodules fallthrough run e2e.tools e2e.provider e2e-local e2e-example e2e-release install-check harness-snapshot-check simulate-tracking example-validation test-scripts
+.PHONY: submodules fallthrough run e2e.tools e2e.provider e2e-local e2e-example e2e-release install-check harness-snapshot-check simulate-tracking example-validation repo-checks test-scripts
 
 # ====================================================================================
 # Special Targets
