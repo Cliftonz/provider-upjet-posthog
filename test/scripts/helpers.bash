@@ -11,7 +11,7 @@ setup_stubs() {
   : > "$CALLS"
 }
 
-# stub NAME [BODY]: puts NAME on PATH; it records "NAME ARGS" in $CALLS, then runs BODY.
+# usage: stub NAME [BODY]
 stub() {
   printf '#!/usr/bin/env bash\necho "%s $*" >> "%s"\n%s\n' "$1" "$CALLS" "${2:-}" > "$BATS_TEST_TMPDIR/bin/$1"
   chmod +x "$BATS_TEST_TMPDIR/bin/$1"

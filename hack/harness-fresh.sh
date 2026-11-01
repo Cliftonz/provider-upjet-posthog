@@ -4,8 +4,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: harness-fresh.sh COMMAND [ARG...]
-# Boots the harness in the new kind cluster E2E_CLUSTER, runs COMMAND, then deletes
-# the cluster and its lanes whatever COMMAND returned. Refuses a cluster that exists.
+#   E2E_CLUSTER  kind cluster to create; default posthog-e2e
 set -euo pipefail
 
 cluster=${E2E_CLUSTER:-posthog-e2e}

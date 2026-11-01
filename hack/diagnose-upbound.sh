@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: diagnose-upbound.sh
-# Describes XPKG_ACCESS_ID and XPKG_TOKEN (length, shape, whitespace) and whether
-# docker login and up login accept them, without printing either value.
+#   XPKG_ACCESS_ID, XPKG_TOKEN  Upbound credentials to diagnose
+# Never prints either value: they are secrets and the output lands in CI logs.
 set -euo pipefail
 
 shape() {

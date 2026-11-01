@@ -4,11 +4,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: validate-examples.sh
-# Installs package/crds into a throwaway kind cluster VALIDATE_CLUSTER and server-side
-# dry-runs every example under examples/namespaced.
 set -euo pipefail
 
-cluster=${VALIDATE_CLUSTER:-posthog-validate}
+cluster=posthog-validate
 export KUBECONFIG
 KUBECONFIG=$(mktemp)
 kind create cluster --name "$cluster" --image "$(sed -n 's/^KIND_NODE_IMAGE=//p' test/harness/images.env)" --kubeconfig "$KUBECONFIG"

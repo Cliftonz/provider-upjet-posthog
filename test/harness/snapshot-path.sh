@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 The provider-upjet-posthog authors
+#
+# SPDX-License-Identifier: MPL-2.0
+
 set -euo pipefail
 
 cd "$(dirname "$0")"

@@ -4,9 +4,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: install-check.sh VERSION
-# Checks that the released package VERSION (vX.Y.Z) pulls without credentials from
-# Upbound and GHCR, then, for each registry, installs it into a throwaway kind cluster
-# against the running harness E2E_CLUSTER and creates, reads and deletes a FeatureFlag.
+#   E2E_CLUSTER  running harness to install against; default posthog-e2e
 set -euo pipefail
 
 version=$1
@@ -14,6 +12,7 @@ cluster=${E2E_CLUSTER:-posthog-e2e}
 check=$cluster-install
 refs=("xpkg.upbound.io/cliftonz/provider-upjet-posthog:$version" "ghcr.io/cliftonz/provider-upjet-posthog:$version")
 work=$(mktemp -d)
+trap 'kind delete cluster --name "$check"; rm -rf "$work"' EXIT
 
 set -a
 # shellcheck source=/dev/null
@@ -37,7 +36,6 @@ UPTEST_CLOUD_CREDENTIALS="$(jq -n --arg api_key "$POSTHOG_API_KEY" --arg host "h
 export UPTEST_CLOUD_CREDENTIALS
 for ref in "${refs[@]}"; do
   kind create cluster --name "$check" --image "$(sed -n 's/^KIND_NODE_IMAGE=//p' test/harness/images.env)" --kubeconfig "$KUBECONFIG"
-  trap 'kind delete cluster --name "$check"' EXIT
   make controlplane.up KIND_CLUSTER_NAME="$check" \
     CROSSPLANE_VERSION="$(sed -n 's/^ *version: ">=v\(.*\)"$/\1/p' package/crossplane.yaml)"
   kubectl -n crossplane-system wait --for=condition=Available deployment --all --timeout=5m
@@ -77,6 +75,4 @@ EOF
   flag "$id" | jq -e '.deleted == true' > /dev/null
   echo "install-check feature flag round trip ok: $ref"
   kind delete cluster --name "$check"
-  trap - EXIT
 done
-rm -rf "$work"

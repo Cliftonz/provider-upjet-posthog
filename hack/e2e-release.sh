@@ -4,8 +4,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: e2e-release.sh VERSION
-# Runs the install check, then e2e against the released Upbound package VERSION (vX.Y.Z),
-# on the running harness E2E_CLUSTER.
+#   E2E_CLUSTER  running harness; default posthog-e2e
 set -euo pipefail
 
 hack/install-check.sh "$1"

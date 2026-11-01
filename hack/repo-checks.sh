@@ -4,8 +4,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: repo-checks.sh
-# Fails when a tracked script is not executable, when the token-holding tracking tool links
-# the upstream provider, or when the Makefile's provider ref differs from the go.mod fork pin.
 set -euo pipefail
 
 if git ls-files -s -- '*.sh' | grep -v '^100755'; then

@@ -4,9 +4,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: snapshot-check.sh
-# Bakes the harness snapshot on a fresh cluster E2E_CLUSTER when none exists, then boots
-# another fresh one from it and fails if PostHog's startup migrate applied any Django
-# migration after the cluster was created.
+#   E2E_CLUSTER  name of the fresh clusters it boots
 set -euo pipefail
 
 if [ ! -f "$(test/harness/snapshot-path.sh)" ]; then

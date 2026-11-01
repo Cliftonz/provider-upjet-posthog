@@ -4,13 +4,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # usage: simulate-tracking.sh
-# Runs the upstream tracking pipeline (SPEC.md section 9) and the publish build on scratch
-# clones of this repository's HEAD and of the fork that cannot push, with a gh stub in
-# place of GitHub, then checks the gates' failure paths. Exits non-zero on any unexpected
-# result and keeps the scratch directory for inspection; removes it on success.
 #   SIM_VERSION  upstream version to track; default the newest upstream release
 #   SIM_LATEST   our pretended latest release; default the upstream release before SIM_VERSION
-#   SIM_E2E=1    also runs e2e on a fresh harness in cluster SIM_CLUSTER (default posthog-sim)
+#   SIM_E2E=1    also runs e2e on a fresh harness in cluster posthog-sim
 set -euo pipefail
 
 export UPSTREAM_REPO=PostHog/terraform-provider-posthog
@@ -48,11 +44,16 @@ git ls-remote --tags --refs "https://github.com/$UPSTREAM_REPO.git" | sed 's#.*r
 jq -R '{tag_name: ., draft: false, prerelease: false}' "$work/upstream-tags" | jq -s . > "$work/upstream.json"
 mapfile -t stable < <(grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' "$work/upstream-tags" | sort -V | sed 's/^v//')
 version=${SIM_VERSION:-${stable[-1]}}
+latest=${SIM_LATEST:-}
 for i in "${!stable[@]}"; do
-  if [ "${stable[$i]}" = "$version" ]; then
-    latest=${SIM_LATEST:-${stable[$((i - 1))]}}
+  if [ -z "$latest" ] && [ "$i" -gt 0 ] && [ "${stable[$i]}" = "$version" ]; then
+    latest=${stable[$((i - 1))]}
   fi
 done
+if [ -z "$latest" ]; then
+  step "v$version is not a stable upstream release with a predecessor; set SIM_LATEST"
+  exit 1
+fi
 jq -n --arg tag "v$latest" '[{tag_name: $tag, draft: false, prerelease: false}]' > "$work/ours.json"
 step "tracking v$version with v$latest as our latest release"
 
@@ -127,7 +128,7 @@ git diff --cached --binary > "$work/changes.patch"
 
 if [ "${SIM_E2E:-}" = 1 ]; then
   step "e2e"
-  E2E_CLUSTER=${SIM_CLUSTER:-posthog-sim} POSTHOG_PORT=${SIM_PORT:-30804} hack/harness-fresh.sh hack/e2e.sh
+  E2E_CLUSTER=posthog-sim POSTHOG_PORT=30804 hack/harness-fresh.sh hack/e2e.sh
 fi
 
 step "publish build"
