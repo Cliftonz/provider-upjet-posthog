@@ -57,13 +57,15 @@ for lane in "${LANES[@]}"; do
   fi
 done
 
-hash="$(find apis config internal cmd/provider package cluster/images go.mod go.sum -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)"
 rebuilt=false
-if [ ! -f _output/e2e-provider.sha256 ] || [ "$(cat _output/e2e-provider.sha256)" != "$hash" ]; then
-  rebuilt=true
-  rm -rf _output/xpkg
-  make build PLATFORMS=linux_amd64
-  echo "$hash" > _output/e2e-provider.sha256
+if [ -z "${E2E_PACKAGE:-}" ]; then
+  hash="$(find apis config internal cmd/provider package cluster/images go.mod go.sum -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)"
+  if [ ! -f _output/e2e-provider.sha256 ] || [ "$(cat _output/e2e-provider.sha256)" != "$hash" ]; then
+    rebuilt=true
+    rm -rf _output/xpkg
+    make build PLATFORMS=linux_amd64
+    echo "$hash" > _output/e2e-provider.sha256
+  fi
 fi
 phase provider-build
 
@@ -78,8 +80,23 @@ deploy() (
   make controlplane.up KIND_CLUSTER_NAME="$1" \
     CROSSPLANE_VERSION="$(sed -n 's/^ *version: ">=v\(.*\)"$/\1/p' package/crossplane.yaml)"
   kubectl -n crossplane-system wait --for=condition=Available deployment --all --timeout=5m
-  make e2e.provider KIND_CLUSTER_NAME="$1" LOCAL_XPKG_DIGEST="sha256:$hash" DRC_FILE=cluster/test/runtimeconfig.yaml
-  kubectl wait provider.pkg provider-posthog --for=jsonpath='{.status.currentIdentifier}'="xpkg.crossplane.internal/dev/provider-posthog@sha256:$hash" --timeout=5m
+  if [ -n "${E2E_PACKAGE:-}" ]; then
+    make e2e.tools
+    kubectl apply -f cluster/test/runtimeconfig.yaml
+    kubectl apply -f - <<EOF
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-posthog
+spec:
+  package: $E2E_PACKAGE
+  runtimeConfigRef:
+    name: runtimeconfig-provider-posthog
+EOF
+  else
+    make e2e.provider KIND_CLUSTER_NAME="$1" LOCAL_XPKG_DIGEST="sha256:$hash" DRC_FILE=cluster/test/runtimeconfig.yaml
+  fi
+  kubectl wait provider.pkg provider-posthog --for=jsonpath='{.status.currentIdentifier}'="${E2E_PACKAGE:-xpkg.crossplane.internal/dev/provider-posthog@sha256:$hash}" --timeout=5m
   if $rebuilt; then
     kubectl -n crossplane-system delete pod -l pkg.crossplane.io/provider=provider-posthog
   fi

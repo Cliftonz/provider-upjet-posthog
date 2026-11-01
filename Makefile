@@ -173,12 +173,14 @@ local-deploy: build controlplane.up local.xpkg.deploy.provider.$(PROJECT_NAME)
 
 e2e: local-deploy uptest
 
-e2e.provider: $(YQ) $(UPTEST) $(CHAINSAW) $(CROSSPLANE_CLI) local.xpkg.deploy.provider.$(PROJECT_NAME)
+e2e.tools: $(UPTEST) $(CHAINSAW) $(CROSSPLANE_CLI)
+
+e2e.provider: $(YQ) e2e.tools local.xpkg.deploy.provider.$(PROJECT_NAME)
 
 e2e-local:
 	@hack/e2e.sh
 
-.PHONY: submodules fallthrough run e2e.provider e2e-local
+.PHONY: submodules fallthrough run e2e.tools e2e.provider e2e-local
 
 # ====================================================================================
 # Special Targets
