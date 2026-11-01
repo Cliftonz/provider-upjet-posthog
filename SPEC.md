@@ -266,7 +266,7 @@ The PostHog name is used descriptively only; no PostHog logo until PostHog grant
 
 Automation and agents never file issues, open PRs, comment, or react on repositories we do not own; the human reviews each draft under `docs/upstream/` and files it from their own account after checking the target's `CONTRIBUTING.md`, templates, signing requirements, and duplicates. Drafts follow each target repository's AI disclosure policy.
 
-- Public constructor: `docs/upstream/posthog-public-provider-issue.md` asks PostHog to expose the constructor, offering Option A (a public wrapper package) or Option B (move `internal/provider` to `provider/`), and links the fork branch as a working Option B; drafted, not yet filed (link added once filed). No PR until a maintainer accepts.
+- Public constructor: `docs/upstream/posthog-public-provider-issue.md` asks PostHog to expose the constructor, offering Option A (a public wrapper package) or Option B (move `internal/provider` to `provider/`), and links the fork branch as a working Option B; filed as [PostHog/terraform-provider-posthog#191](https://github.com/PostHog/terraform-provider-posthog/issues/191). No PR until a maintainer accepts.
 - upjet: [comment on crossplane/upjet#788](https://github.com/crossplane/upjet/issues/788#issuecomment-6329830093) with fix PR [crossplane/upjet#792](https://github.com/crossplane/upjet/pull/792).
 - Possible security issues in upstream go through PostHog's private channel per `SECURITY.md`.
 - Upstream bugs found by e2e are drafted with a reproducer.
