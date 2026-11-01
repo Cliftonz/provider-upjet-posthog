@@ -143,7 +143,7 @@ git checkout -q hack/bump.sh
 expect_failure "patch touching hack/" hack/bump.sh "$work/tracking" patch-paths "$work/hack.patch"
 
 step "failure path: an unacknowledged removed field"
-jq '.provider_schemas[].resource_schemas.posthog_dashboard.block.attributes |= del(.description)' config/schema.json > "$work/schema.json"
+jq -c '.provider_schemas[].resource_schemas.posthog_dashboard.block.attributes |= del(.description)' config/schema.json > "$work/schema.json"
 cp "$work/schema.json" config/schema.json
 expect_failure "breaking-change gate" posthog_dashboard.description hack/breaking-changes.sh all
 printf '"%s":\n  breaking:\n    - posthog_dashboard.description\n' "$version" > hack/upstream-acks.yaml
