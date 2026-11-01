@@ -56,7 +56,8 @@ reads it from `secretRef.namespace`.
 
 - [SPEC.md](SPEC.md): design, API groups and kinds, credentials, release process
 - [examples/namespaced](examples/namespaced): example manifests
-- `test/harness`: local PostHog for end-to-end tests (coming)
+- [test/harness](test/harness): local PostHog for end-to-end tests
+- [docs/testing.md](docs/testing.md): every check, the command that runs it, and where it runs automatically
 
 ## Upstream
 

@@ -15,7 +15,7 @@ test/harness/down.sh   # delete the cluster
 
 First boot runs all PostHog migrations and takes about 50 minutes on 4 CPUs; `up.sh` waits up to 90 minutes.
 
-`up.sh` writes `test/harness/.out/posthog.env`:
+`E2E_CLUSTER` (default `posthog-e2e`) names the cluster and `POSTHOG_PORT` (default `30800`) the host port. `up.sh` writes `test/harness/.out/<cluster>.env`, so `posthog-e2e.env` by default:
 
 | Variable | Meaning |
 |---|---|

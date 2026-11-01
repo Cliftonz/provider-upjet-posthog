@@ -38,7 +38,7 @@ Exit path: the fork stays until PostHog ships an importable constructor or upjet
 Based on `crossplane/upjet-provider-template` with all cluster-scoped trees and `backport.yml` removed; there are no release branches.
 
 ```
-.github/workflows/   ci.yml, e2e.yaml, tag.yaml, publish-provider-package.yml, upstream-tracking.yml
+.github/workflows/   ci.yml, e2e.yaml, tag.yaml, publish-provider-package.yml, release-check.yml, upstream-tracking.yml, simulate-tracking.yml
 apis/namespaced/     generated API types; v1beta1 ProviderConfig, ClusterProviderConfig, ProviderConfigUsage
 config/              provider config, external names, per-group config, schema.json, provider metadata
 examples/namespaced/ hand-maintained manifests, one per resource, used by e2e
@@ -148,11 +148,13 @@ The template build submodule provides generation, the multi-arch (`linux/amd64`,
 
 | Workflow | Trigger | Outcome |
 |---|---|---|
-| `ci.yml` | push to `main`, pull_request | lint; generation leaves no diff; unit tests; image and xpkg build; example validation (server-side dry-run of `examples/namespaced` in kind); CRD breaking-change check against the latest release, including `v1alpha1` kinds, passing changes acknowledged in `hack/upstream-acks.yaml`, skipped when no release exists |
+| `ci.yml` | push to `main`, pull_request | lint and repository checks; generation leaves no diff; unit tests; script tests (shellcheck and bats); image and xpkg build; example validation (server-side dry-run of `examples/namespaced` in kind); CRD breaking-change check against the latest release, including `v1alpha1` kinds, passing changes acknowledged in `hack/upstream-acks.yaml`, skipped when no release exists |
 | `e2e.yaml` | pull_request on `upstream/v*` and `upjet/*` branches; other PRs only with label `run-e2e`; `workflow_dispatch`; push to `main` runs only the snapshot and Go cache jobs | section 11; on `main`, saves the PostHog snapshot and the provider build cache that PRs restore |
 | `tag.yaml` | merge (closed and merged) of an `upstream/v*` PR; `workflow_dispatch` (version, SHA) | creates `v<version>` on the merge commit; skips if the tag exists at that SHA; fails if it exists at another SHA, with a `release` issue when the App is configured; then calls `publish-provider-package.yml` as a reusable workflow |
-| `publish-provider-package.yml` | `workflow_call` from `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image, in a job that holds no registry credentials; separate jobs push the built `.xpkg` files with `hack/push-xpkg.sh` unless the tag exists, appending `extensions/icons/icon.svg` with `up xpkg append`: one holding only `GITHUB_TOKEN` with `packages: write` pushes to `ghcr.io/cliftonz/provider-upjet-posthog:<version>`, one holding only the Upbound credentials pushes to `xpkg.upbound.io/cliftonz/provider-upjet-posthog:<version>` and skips with a `::notice::` without the Upbound secrets; after the GHCR push, and regardless of Upbound, creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then, with the App, dispatches `upstream-tracking.yml` |
+| `publish-provider-package.yml` | `workflow_call` from `tag.yaml`; `workflow_dispatch` (version) | rebuilds from the tag rather than promoting the e2e image, in a job that holds no registry credentials; separate jobs push the built `.xpkg` files with `hack/push-xpkg.sh` unless the tag exists, appending `extensions/icons/icon.svg` with `up xpkg append`: one holding only `GITHUB_TOKEN` with `packages: write` pushes to `ghcr.io/cliftonz/provider-upjet-posthog:<version>`, one holding only the Upbound credentials pushes to `xpkg.upbound.io/cliftonz/provider-upjet-posthog:<version>` and skips with a `::notice::` without the Upbound secrets; after the GHCR push, and regardless of Upbound, creates the GitHub release, marked latest, unless it exists; a lookup error other than not found fails; then, with the App, dispatches `upstream-tracking.yml`; a failed Upbound push runs `hack/diagnose-upbound.sh`; after the Upbound push and the release succeed, calls `release-check.yml` |
+| `release-check.yml` | `workflow_call` from publish; `workflow_dispatch` (version) | `make e2e-release`: anonymous pull from both registries, an install check from each into a throwaway kind cluster, and e2e of the Upbound package on a fresh harness; no secrets |
 | `upstream-tracking.yml` | daily schedule, `workflow_dispatch`, successful publish | section 9 |
+| `simulate-tracking.yml` | weekly schedule, `workflow_dispatch` (version, pretended latest release) | `make simulate-tracking` without e2e: section 9 and the publish build on scratch clones that cannot push, plus the gates' failure paths |
 
 Tracking, tag (`release`), publish (`publish`), and e2e each run in their own `concurrency` group and authenticate with the GitHub App token (section 12), so their pushes, PRs, issues, and dispatches work and trigger downstream workflows. Tag and publish fall back to `GITHUB_TOKEN` without the App; tag calls publish with `workflow_call` because events created with `GITHUB_TOKEN` trigger no workflows. Reusable workflows receive secrets explicitly.
 
@@ -197,6 +199,8 @@ Our version equals the upstream version it embeds; the same string is the git ta
 | Fork | fork CI and section 9 | Upstream unit tests and the external-import check |
 | Manifest validation | kind, server-side dry-run | Every example in `examples/namespaced` |
 | End to end | uptest on kind | Every kind except `Table`, against self-hosted PostHog |
+
+Every check, its command, where it runs automatically, and its duration are listed in [docs/testing.md](docs/testing.md).
 
 Local and CI e2e run the same harness, `test/harness/`, which deploys self-hosted PostHog into a fresh kind cluster per run: the official hobby stack ported to kind, images pinned by digest, bootstrapped headlessly with a personal API key, an organization, a project, a second user, and an enterprise License row for dev/test as `ee/LICENSE` permits. The bootstrap supplies all e2e credentials; e2e uses no GitHub secrets. Cloud-only behavior: `ProxyRecord` never reaches status `valid`; `Subscription` AI prompts are unavailable; `Table` needs an https object store on a public address (PostHog rejects anything else), which the harness cannot provide without hijacking a public IP or running PostHog in DEBUG mode, hence its exclusion. The harness syncs the Node.js CDP hog function templates, so the `HogFunction` and logs `AlertDestination` examples are webhooks, and runs `source-db`, a TLS Postgres the `ExternalDataSource` example syncs two tables from. The harness also runs personhog, which project deletion requires.
 
