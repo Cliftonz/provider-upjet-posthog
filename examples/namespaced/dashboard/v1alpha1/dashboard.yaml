@@ -18,3 +18,4 @@ spec:
     description: Example dashboard
     tags:
       - example
+    pinned: true

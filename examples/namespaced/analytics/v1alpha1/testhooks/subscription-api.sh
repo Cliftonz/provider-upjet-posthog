@@ -8,5 +8,6 @@ MR=subscription.analytics.posthog.m.clifton.quest/example-subscription
 object() {
   get "projects/$POSTHOG_PROJECT_ID/subscriptions/$(at id)/"
 }
+CREATED='.frequency == "monthly" and .byweekday == ["monday"] and .bysetpos == 1 and .enabled == true'
 UPDATED='.title == "example-subscription-updated"'
 assert_api "$@"

@@ -8,5 +8,6 @@ MR=dashboard.dashboard.posthog.m.clifton.quest/example-dashboard
 object() {
   get "projects/$POSTHOG_PROJECT_ID/dashboards/$(at id)/"
 }
+CREATED='.pinned == true'
 UPDATED='.description == "Updated description"'
 assert_api "$@"

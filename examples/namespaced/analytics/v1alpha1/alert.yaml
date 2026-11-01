@@ -39,3 +39,11 @@ spec:
     thresholdUpper: 10000
     seriesIndex: 0
     calculationInterval: daily
+    thresholdLower: 1
+    checkOngoingInterval: true
+    enabled: true
+    skipWeekend: true
+    scheduleRestriction:
+      blockedWindows:
+        - start: "22:00"
+          end: "06:00"

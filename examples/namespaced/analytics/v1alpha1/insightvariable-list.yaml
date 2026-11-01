@@ -1,0 +1,20 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: InsightVariable
+metadata:
+  name: example-insightvariable-list
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/insightvariable
+    uptest.upbound.io/post-assert-hook: 'testhooks/insightvariable-list-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/insightvariable-list-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/insightvariable-list-api.sh deleted || exit 1'
+    uptest.upbound.io/update-parameter: '{"name":"example-region-updated"}'
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-region
+    type: List
+    valuesJson: '["us","eu"]'
+    defaultValueJson: '"us"'

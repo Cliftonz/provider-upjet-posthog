@@ -34,6 +34,10 @@ spec:
       name: example-subscription-insight
     targetType: email
     targetValue: uptest@example.com
-    frequency: daily
+    frequency: monthly
+    byweekday:
+      - monday
+    bysetpos: 1
+    enabled: true
     interval: 1
     startDate: "2026-12-01T09:00:00Z"

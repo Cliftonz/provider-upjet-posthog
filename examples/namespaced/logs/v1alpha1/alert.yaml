@@ -23,6 +23,13 @@ spec:
     evaluationPeriods: 3
     datapointsToAlarm: 2
     cooldownMinutes: 30
+    enabled: true
+    snoozeUntil: "2027-01-31T09:00:00Z"
+    filterGroupJson: |
+      {"type":"AND","values":[{"type":"AND","values":[{"type":"log_attribute","key":"status_code","operator":"exact","value":["500"]}]}]}
+    blockedWindows:
+      - start: "22:00"
+        end: "06:00"
   providerConfigRef:
     kind: ProviderConfig
     name: default

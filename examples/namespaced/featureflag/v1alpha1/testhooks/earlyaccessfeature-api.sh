@@ -8,5 +8,6 @@ MR=earlyaccessfeature.featureflag.posthog.m.clifton.quest/example-new-editor
 object() {
   get "projects/$POSTHOG_PROJECT_ID/early_access_feature/$(at id)/"
 }
+CREATED='.payload.theme == "dark"'
 UPDATED='.description == "Updated description"'
 assert_api "$@"

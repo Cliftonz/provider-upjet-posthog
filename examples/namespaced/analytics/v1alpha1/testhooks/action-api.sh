@@ -8,5 +8,6 @@ MR=action.analytics.posthog.m.clifton.quest/example-action
 object() {
   get "projects/$POSTHOG_PROJECT_ID/actions/$(at id)/"
 }
+CREATED='.post_to_slack == true and .slack_message_format == "[action.name] triggered by [person]"'
 UPDATED='.description == "Updated description"'
 assert_api "$@"

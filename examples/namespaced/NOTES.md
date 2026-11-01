@@ -10,6 +10,8 @@
 - testhooks/posthog.sh holds the shared phases; a hook names its MR, an `object` function that prints the API object or null, and optional CREATED, UPDATED and DELETED jq filters. The create phase saves the MR's status.atProvider to `$TMPDIR/posthog-e2e-<hook>.json`, from which later phases read IDs.
 - uptest runs delete hooks as lines of one `sh -c` script without `set -e`, so the delete hook annotations append `|| exit 1`; a failing delete hook stops the step before the remaining deletes.
 - Settings, DefaultAccess and Layout are singletons: their hooks assert values after create and update and have no post-delete hook. Organization Member sets retainOnDestroy, so its post-delete hook asserts the member is still in the organization.
+- A root's example-id must equal `<group>/v1alpha1/<kind>`: uptest treats only such a resource as the root and runs the update step only for a root. A second example of a kind in its own file (featureflag-optional.yaml, cohort-static.yaml, insight-sql.yaml, insightvariable-list.yaml) therefore reuses the kind's example-id.
+- Optional fields are covered by adding them to the existing example and to its hook's CREATED filter; a separate file holds a field that excludes or changes the kind's main shape (static cohort, SQL insight, List variable) and the FeatureFlag fields upstream added in v1.0.27.
 
 ## access
 
@@ -52,6 +54,7 @@
 - Lock flag variants are off 100 / notice 0 / locked 0; the staff/admin group forces notice, the catch-all group serves the default distribution.
 - Payload values are JSON strings (escaped) inside the filters JSON, keyed by variant, as PostHog stores them.
 - featureflag-lock.yaml runs testhooks/lock-toggle.sh after Ready: it patches active to false and asserts through the API that the flag is inactive and keeps the three variants, the payloads and the per-condition variant override.
+- featureflag-optional.yaml sets the fields upstream added in v1.0.27 (archived, bucketingIdentifier, evaluationContexts, evaluationRuntime, isRemoteConfiguration) plus ensureExperienceContinuity: archived needs active false, device_id bucketing needs ensureExperienceContinuity false, and a remote configuration flag carries its payload under the key "true". Self-hosted PostHog accepts evaluation contexts without enabling anything. The update changes evaluationRuntime from server to client.
 
 ## logs
 
@@ -80,3 +83,19 @@
 
 - ExternalDataSource syncs public.users and public.orders from the harness source-db (TLS Postgres, user reader) with prefix e2e_; its job inputs come from a Secret. schemas is listed alphabetically, the order PostHog returns it in; in any other order the provider sees a diff on schemas, which requires replacement, and the MR never becomes Synced. jobInputsJson is its only updatable field and is sensitive, so status.atProvider never shows it and uptest's update step cannot assert it: the post-assert hook instead switches jobInputsJsonSecretRef to the Secret key jobInputsUpdated, whose host is the shorter source-db.posthog.svc, and waits until PostHog reports that host; the pre-delete hook asserts it again after import.
 - Table is excluded from e2e via upjet.upbound.io/manual-intervention: PostHog rejects URL patterns that are not https or that resolve to private addresses, so no object store inside kind qualifies, and the harness could provide one only by hijacking a public IP or running PostHog in DEBUG mode. The example uses placeholder S3 values.
+
+## Optional fields not covered
+
+- projectId and organizationId on every kind: the provider-level values from the harness ProviderConfig apply.
+- deleted (Action, Cohort, Dashboard, FeatureFlag, Insight): the soft-delete flag; the delete step covers removal, and creating an object already deleted tests nothing.
+- FeatureFlag createUsageDashboard: deprecated; PostHog rejects true for new flags. ignoreFilterFields: decides which filter keys the provider tracks for drift and is never sent to PostHog, so the API has nothing to assert.
+- analytics Alert evaluation, column and labelColumn: SQL alert fields that need a HogQL insight; not added in this pass.
+- Insight and Survey createInFolder: create-only and never read back, so no assertion is possible. Insight derivedName: PostHog sets it when name is empty.
+- Subscription aiPrompt, aiPromptConfig, summaryEnabled and summaryPromptGuide: need PostHog AI, which the harness does not configure. integrationId: Slack targets only. dashboardId and dashboardExportInsights: a dashboard subscription needs its own example with a dashboard and insights; not added in this pass.
+- HogFunction hog, inputsSchemaJson and mappingsJson: replace the template's code and input schema; the webhook example keeps the template's. Not added in this pass.
+- Experiment holdoutId: needs a holdout, which no kind manages.
+- logs AlertDestination slackChannelId, slackChannelName and slackWorkspaceId: need a Slack integration.
+- project Member role: see project above.
+- Survey archived, formContentJson, translationsJson, linkedFlagId, linkedInsightId and targetingFlagId: the fork documents no shape for formContentJson and translationsJson; the others were not added in this pass.
+- Survey targetingFlagFiltersJson: with v1.0.27 the survey is created with its targeting flag, but every later update fails with 400 "Targeting Feature Flag with this ID does not exist", so the MR never syncs after the update step (seen on posthog-release). Left out until the provider is fixed.
+- AccessControl organizationMember and resourceId: member-scoped and object-scoped rules; not added in this pass.

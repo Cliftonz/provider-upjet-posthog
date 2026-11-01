@@ -8,5 +8,6 @@ MR=insight.analytics.posthog.m.clifton.quest/example-insight
 object() {
   get "projects/$POSTHOG_PROJECT_ID/insights/$(at id)/"
 }
+CREATED='.description == "Pageviews over time" and .tags == ["example"]'
 UPDATED='.name == "example-insight-updated"'
 assert_api "$@"

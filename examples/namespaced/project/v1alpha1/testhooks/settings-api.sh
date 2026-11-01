@@ -8,6 +8,6 @@ MR=settings.project.posthog.m.clifton.quest/example-settings
 object() {
   get "environments/$(at projectId)/"
 }
-CREATED='.anonymize_ips == false'
+CREATED='.anonymize_ips == false and .autocapture_exceptions_opt_in == true and .autocapture_web_vitals_opt_in == true and .test_account_filters[0].value == "@example.com" and .test_account_filters_default_checked == true'
 UPDATED='.anonymize_ips == true'
 assert_api "$@"

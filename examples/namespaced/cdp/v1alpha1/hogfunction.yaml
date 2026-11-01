@@ -16,6 +16,10 @@ spec:
     type: destination
     enabled: true
     templateId: template-webhook
+    executionOrder: 1
+    iconUrl: https://example.com/webhook.png
+    maskingJson: |
+      {"ttl":1800,"threshold":null,"hash":"{person.id}"}
     inputsJson: |
       {"url":{"value":"https://example.com/posthog-webhook"},"method":{"value":"POST"},"body":{"value":{"event":"{event}","person":"{person}"}},"headers":{"value":{"Content-Type":"application/json"}}}
     filtersJson: |

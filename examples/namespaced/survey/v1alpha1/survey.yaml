@@ -14,7 +14,20 @@ spec:
     name: Example NPS
     description: Quarterly NPS survey.
     type: popover
-    schedule: once
+    schedule: recurring
+    iterationCount: 2
+    iterationFrequencyDays: 90
+    startDate: "2026-12-01T00:00:00Z"
+    endDate: "2027-12-01T00:00:00Z"
+    responsesLimit: 100
+    responseSamplingStartDate: "2026-12-01T00:00:00Z"
+    responseSamplingIntervalType: week
+    responseSamplingInterval: 1
+    responseSamplingLimit: 50
+    enablePartialResponses: true
+    enableIframeEmbedding: true
+    appearanceJson: |
+      {"backgroundColor":"#eeeeee"}
     questionsJson: |
       [{"type":"rating","question":"How would you rate your experience?","scale":10,"buttonText":"Submit","isNpsQuestion":true}]
     conditionsJson: |

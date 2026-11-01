@@ -31,6 +31,7 @@ spec:
     stage: beta
     description: A faster editor with live collaboration.
     documentationUrl: https://example.com/docs/new-editor
+    payload: '{"theme":"dark"}'
     featureFlagIdRef:
       name: example-new-editor
   providerConfigRef:

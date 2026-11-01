@@ -15,4 +15,7 @@ spec:
     name: default
   forProvider:
     name: example-insight
+    description: Pageviews over time
+    tags:
+      - example
     queryJson: '{"kind":"InsightVizNode","source":{"kind":"TrendsQuery","series":[{"kind":"EventsNode","event":"$pageview","math":"total"}]}}'

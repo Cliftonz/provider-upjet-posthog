@@ -18,4 +18,6 @@ spec:
     description: Tracks visits to the pricing page
     tags:
       - marketing
+    postToSlack: true
+    slackMessageFormat: '[action.name] triggered by [person]'
     stepsJson: '[{"event":"$pageview","url":"https://example.com/pricing","url_matching":"exact"}]'

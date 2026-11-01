@@ -43,6 +43,8 @@ spec:
     allowUnknownEvents: true
     metrics: |
       [{"kind":"ExperimentMetric","metric_type":"mean","name":"Revenue per user","source":{"kind":"EventsNode","event":"purchase","math":"sum"}}]
+    metricsSecondary: |
+      [{"kind":"ExperimentMetric","metric_type":"mean","name":"Checkouts per user","source":{"kind":"EventsNode","event":"checkout","math":"total"}}]
     exposureCriteria: |
       {"filterTestAccounts":true}
     status:

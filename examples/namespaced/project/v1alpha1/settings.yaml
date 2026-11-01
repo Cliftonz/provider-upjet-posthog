@@ -22,6 +22,10 @@ spec:
     recordingDomains:
       - https://app.example.com
     capturePerformanceOptIn: true
+    autocaptureExceptionsOptIn: true
+    autocaptureWebVitalsOptIn: true
+    testAccountFilters: '[{"key":"email","value":"@example.com","operator":"not_icontains","type":"person"}]'
+    testAccountFiltersDefaultChecked: true
     sessionRecordingNetworkPayloadCaptureConfig:
       recordHeaders: true
       recordBody: false

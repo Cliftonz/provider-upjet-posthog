@@ -1,0 +1,19 @@
+apiVersion: analytics.posthog.m.clifton.quest/v1alpha1
+kind: Cohort
+metadata:
+  name: example-cohort-static
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: analytics/v1alpha1/cohort
+    uptest.upbound.io/post-assert-hook: 'testhooks/cohort-static-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/cohort-static-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/cohort-static-api.sh deleted || exit 1'
+    uptest.upbound.io/update-parameter: '{"description":"Updated description"}'
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: example-cohort-static
+    description: Hand-picked beta testers
+    isStatic: true

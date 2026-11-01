@@ -1,0 +1,28 @@
+apiVersion: featureflag.posthog.m.clifton.quest/v1alpha1
+kind: FeatureFlag
+metadata:
+  name: example-optional
+  namespace: default
+  annotations:
+    meta.upbound.io/example-id: featureflag/v1alpha1/featureflag
+    uptest.upbound.io/post-assert-hook: 'testhooks/featureflag-optional-api.sh'
+    uptest.upbound.io/pre-delete-hook: 'testhooks/featureflag-optional-api.sh updated || exit 1'
+    uptest.upbound.io/post-delete-hook: 'testhooks/featureflag-optional-api.sh deleted || exit 1'
+    uptest.upbound.io/update-parameter: '{"evaluationRuntime":"client"}'
+spec:
+  forProvider:
+    key: example-optional-flag
+    name: Example optional fields flag
+    active: false
+    archived: true
+    bucketingIdentifier: device_id
+    ensureExperienceContinuity: false
+    evaluationContexts:
+      - web
+    evaluationRuntime: server
+    isRemoteConfiguration: true
+    filters: |
+      {"groups":[{"properties":[],"rollout_percentage":100}],"payloads":{"true":"{\"theme\":\"dark\"}"}}
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default

@@ -8,5 +8,6 @@ MR=experiment.experiment.posthog.m.clifton.quest/example-pricing-test
 object() {
   get "projects/$POSTHOG_PROJECT_ID/experiments/$(at id)/"
 }
+CREATED='.metrics_secondary[0].name == "Checkouts per user"'
 UPDATED='.description == "Updated description"'
 assert_api "$@"
