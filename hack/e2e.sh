@@ -6,7 +6,8 @@
 set -euo pipefail
 
 set -a
-. test/harness/.out/posthog.env
+# shellcheck source=/dev/null
+. "test/harness/.out/${E2E_CLUSTER:-posthog-e2e}.env"
 set +a
 
 api() {
@@ -18,6 +19,7 @@ observed_role_id="$(api "organizations/$POSTHOG_ORGANIZATION_ID/roles/" \
   -d "$(jq -n --arg name "e2e-observed-$suffix" '{$name}')" | jq -r .id)"
 observed_insight_id="$(api "projects/$POSTHOG_PROJECT_ID/insights/" \
   -d "$(jq -n --arg name "e2e-observed-$suffix" '{$name, query: {kind: "InsightVizNode", source: {kind: "TrendsQuery", series: []}}}')" | jq -r .id)"
+# shellcheck disable=SC2317
 delete_observed() {
   api "organizations/$POSTHOG_ORGANIZATION_ID/roles/$observed_role_id/" -X DELETE
   api "projects/$POSTHOG_PROJECT_ID/insights/$observed_insight_id/" -X PATCH -d '{"deleted": true}' > /dev/null
@@ -74,6 +76,7 @@ for pid in "${pids[@]}"; do
 done
 phase lane-clusters
 
+# shellcheck disable=SC2030
 deploy() (
   kind export kubeconfig --name "$1" --kubeconfig "_output/lanes/$1.kubeconfig"
   export KUBECONFIG="$PWD/_output/lanes/$1.kubeconfig"
@@ -115,6 +118,7 @@ diagnose() {
   free -m
 }
 
+# shellcheck disable=SC2031
 run_lane() (
   export KUBECONFIG="$PWD/_output/lanes/$1.kubeconfig"
   while read -r _ examples; do
@@ -134,11 +138,15 @@ for lane in "${LANES[@]}"; do
   : > "_output/lanes/$lane.jobs"
   : > "_output/lanes/$lane.failed"
 done
-mapfile -t examples < <(find examples/namespaced -path '*/v1alpha1/*.yaml' | sort | xargs grep -L upjet.upbound.io/manual-intervention)
-{
-  echo "test-user $(grep -l POSTHOG_TEST_USER_UUID "${examples[@]}" | xargs)"
-  grep -L POSTHOG_TEST_USER_UUID "${examples[@]}" | sed 's#^examples/namespaced/\([^/]*\)/v1alpha1/\(.*\)\.yaml$#\1-\2 &#'
-} | awk -v lanes="${LANES[*]}" '{n = split(lanes, l, " "); print > ("_output/lanes/" l[NR % n + 1] ".jobs")}'
+if [ -n "${E2E_EXAMPLES:-}" ]; then
+  echo "selected $E2E_EXAMPLES" > "_output/lanes/$CLUSTER.jobs"
+else
+  mapfile -t examples < <(find examples/namespaced -path '*/v1alpha1/*.yaml' | sort | xargs grep -L upjet.upbound.io/manual-intervention)
+  {
+    echo "test-user $(grep -l POSTHOG_TEST_USER_UUID "${examples[@]}" | xargs)"
+    grep -L POSTHOG_TEST_USER_UUID "${examples[@]}" | sed 's#^examples/namespaced/\([^/]*\)/v1alpha1/\(.*\)\.yaml$#\1-\2 &#'
+  } | awk -v lanes="${LANES[*]}" '{n = split(lanes, l, " "); print > ("_output/lanes/" l[NR % n + 1] ".jobs")}'
+fi
 
 pids=()
 for lane in "${LANES[@]}"; do

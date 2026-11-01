@@ -180,7 +180,41 @@ e2e.provider: $(YQ) e2e.tools local.xpkg.deploy.provider.$(PROJECT_NAME)
 e2e-local:
 	@hack/e2e.sh
 
-.PHONY: submodules fallthrough run e2e.tools e2e.provider e2e-local
+e2e-example:
+	@E2E_EXAMPLES="$(EXAMPLE)" E2E_LANES=1 hack/e2e.sh
+
+RELEASE_CLUSTER ?= posthog-release
+RELEASE_PORT ?= 30802
+e2e-release:
+	@E2E_CLUSTER=$(RELEASE_CLUSTER) POSTHOG_PORT=$(RELEASE_PORT) hack/harness-fresh.sh hack/e2e-release.sh $(VERSION)
+
+install-check:
+	@hack/install-check.sh $(VERSION)
+
+SNAPSHOT_CLUSTER ?= posthog-snapshot
+SNAPSHOT_PORT ?= 30803
+harness-snapshot-check:
+	@E2E_CLUSTER=$(SNAPSHOT_CLUSTER) POSTHOG_PORT=$(SNAPSHOT_PORT) hack/snapshot-check.sh
+
+simulate-tracking:
+	@hack/simulate-tracking.sh
+
+example-validation:
+	@hack/validate-examples.sh
+
+BATS_VERSION = v1.11.1
+BATS := $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)/bin/bats
+$(BATS):
+	@$(INFO) installing bats $(BATS_VERSION)
+	@mkdir -p $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)
+	@curl -fsSL https://github.com/bats-core/bats-core/archive/refs/tags/$(BATS_VERSION).tar.gz | tar -xz --strip-components=1 -C $(TOOLS_HOST_DIR)/bats-$(BATS_VERSION)
+	@$(OK) installing bats $(BATS_VERSION)
+
+test-scripts: $(BATS)
+	@git ls-files '*.sh' | xargs shellcheck
+	@$(BATS) test/scripts
+
+.PHONY: submodules fallthrough run e2e.tools e2e.provider e2e-local e2e-example e2e-release install-check harness-snapshot-check simulate-tracking example-validation test-scripts
 
 # ====================================================================================
 # Special Targets

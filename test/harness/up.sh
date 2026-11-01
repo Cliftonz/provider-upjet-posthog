@@ -12,7 +12,7 @@ NAMESPACE=posthog
 export POSTHOG_HOST=http://localhost:$POSTHOG_PORT
 POSTHOG_CLUSTER_HOST=http://web.$NAMESPACE.svc.cluster.local:8000
 SRC=.out/src
-SNAPSHOT="${XDG_CACHE_HOME:-$HOME/.cache}/posthog-e2e/$(cat images.env bootstrap.py manifests/* | sha256sum | cut -d' ' -f1).tar"
+SNAPSHOT="$(./snapshot-path.sh)"
 kc() { kubectl --context "kind-$CLUSTER" --namespace "$NAMESPACE" "$@"; }
 apply() { envsubst "$VARS" < "manifests/$1.yaml" | kc apply -f -; }
 
@@ -116,8 +116,8 @@ kc wait --for=condition=Available deployment --all --timeout=90m
 phase posthog-ready
 
 BOOTSTRAP="$(kc logs job/hog-function-templates | kc exec -i deploy/web -- env PYTHONPATH=/code:/python-runtime python -c "$(cat bootstrap.py)" | grep '^POSTHOG_')"
-printf 'POSTHOG_HOST=%s\nPOSTHOG_CLUSTER_HOST=%s\n%s\n' "$POSTHOG_HOST" "$POSTHOG_CLUSTER_HOST" "$BOOTSTRAP" > .out/posthog.env
-echo "wrote $(pwd)/.out/posthog.env"
+printf 'POSTHOG_HOST=%s\nPOSTHOG_CLUSTER_HOST=%s\n%s\n' "$POSTHOG_HOST" "$POSTHOG_CLUSTER_HOST" "$BOOTSTRAP" > ".out/$CLUSTER.env"
+echo "wrote $(pwd)/.out/$CLUSTER.env"
 phase bootstrap
 
 if $fresh && [ ! -f "$SNAPSHOT" ]; then
