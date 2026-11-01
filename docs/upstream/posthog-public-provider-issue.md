@@ -1,6 +1,8 @@
 **Title:** Expose the provider constructor in a public package so it can be embedded in-process
 
-`New` lives in `internal/provider`, so Go's internal-package rule blocks other modules from importing it. In-process bridges such as Crossplane's upjet (no-fork mode) and Pulumi's statically bridged Terraform providers must call that constructor directly; we hit this building [Cliftonz/provider-upjet-posthog](https://github.com/Cliftonz/provider-upjet-posthog).
+We maintain a Crossplane provider for PostHog, [Cliftonz/provider-upjet-posthog](https://github.com/Cliftonz/provider-upjet-posthog), published at xpkg.upbound.io/cliftonz/provider-upjet-posthog, which lets teams manage PostHog resources (feature flags, dashboards, insights, surveys, projects, access control, and the rest) as Kubernetes resources that are reconciled continuously, alongside the applications that use them (GitOps). It is generated with Crossplane's upjet from this Terraform provider, so every resource and behavior comes from here, and its releases match this provider's versions (v1.0.25 to v1.0.27 so far). upjet's recommended mode runs the Terraform provider in-process, which requires importing its constructor, while the alternative mode shells out to the terraform CLI on every reconcile. Today we build against a fork that moves the package out of `internal/`, and we would like to drop that fork.
+
+`New` lives in `internal/provider`, so Go's internal-package rule blocks other modules from importing it. In-process bridges such as upjet's no-fork mode and Pulumi's statically bridged Terraform providers must call that constructor directly.
 
 Two options, whichever you prefer:
 
