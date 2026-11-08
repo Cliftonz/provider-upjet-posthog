@@ -5,7 +5,7 @@ Every check is one command that exits non-zero on failure. Commands run from the
 | Check | What it proves | Command | Runs automatically | Duration |
 |---|---|---|---|---|
 | Lint | golangci-lint passes on the Go code | `make lint` | `ci.yml` job `lint` on push to `main` and every PR | about 5 min |
-| Repository checks | every tracked `*.sh` is mode `100755`; `cmd/tracking`, which runs with the GitHub App token, links no upstream provider package; the Makefile `TERRAFORM_PROVIDER_REF` matches the `go.mod` fork pin | `make repo-checks` | `ci.yml` job `lint` | under 1 min |
+| Repository checks | every tracked `*.sh` is mode `100755`; `cmd/tracking`, which runs with the GitHub App token, links no upstream provider package; the Makefile `TERRAFORM_PROVIDER_REF` matches the `go.mod` require | `make repo-checks` | `ci.yml` job `lint` | under 1 min |
 | Generation diff | `make generate` reproduces the committed generated code, CRDs and examples | `make check-diff` | `ci.yml` job `check-diff` | about 10 min |
 | Go unit tests | credential mapping, provider config resolution, external names, ID and JSON conversions, and the tracking tool (fork tag, pending version, skips, schema and CRD diff, gates, patch paths) | `make test` | `ci.yml` job `unit-tests` | about 3 min |
 | Script tests | shellcheck passes on every tracked script; bats tests of the scripts with branches: tag, push, failure issue, bump, fork rebase, breaking-change skip, fresh harness, Upbound diagnostics, repository checks, the simulation's version selection, `VERSION` required by `make e2e-release` and `make install-check` | `make test-scripts` | `ci.yml` job `script-tests` | under 1 min |

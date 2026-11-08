@@ -1,4 +1,6 @@
 > Filed: https://github.com/PostHog/terraform-provider-posthog/issues/191
+>
+> Resolved: upstream https://github.com/PostHog/terraform-provider-posthog/pull/192, released in v1.0.28, moved the Go packages from `internal/` to `pkg/`; the provider imports `pkg/provider` and the fork is retired.
 
 **Title:** Expose the provider constructor in a public package so it can be embedded in-process
 

@@ -15,7 +15,7 @@ kind: Provider
 metadata:
   name: provider-posthog
 spec:
-  package: xpkg.upbound.io/cliftonz/provider-upjet-posthog:v1.0.27
+  package: xpkg.upbound.io/cliftonz/provider-upjet-posthog:v1.0.28
 ```
 
 The same package is also published to GitHub Packages as
@@ -61,10 +61,8 @@ reads it from `secretRef.namespace`.
 
 ## Upstream
 
-The provider embeds `github.com/PostHog/terraform-provider-posthog` through the
-fork `github.com/Cliftonz/terraform-provider-posthog`, which only makes the
-provider constructor importable. The fork is dropped once upstream exposes the
-constructor.
+The provider embeds `github.com/PostHog/terraform-provider-posthog` directly,
+importing its public `pkg/provider` package.
 
 ## License
 

@@ -10,7 +10,7 @@
 | Packages | `ghcr.io/cliftonz/provider-upjet-posthog`, `xpkg.upbound.io/cliftonz/provider-upjet-posthog` |
 | Upbound organization | `cliftonz` |
 | Upstream provider | registry `posthog/posthog`, Go module `github.com/posthog/terraform-provider` |
-| Embedded via | fork `github.com/Cliftonz/terraform-provider-posthog` (section 2) |
+| Embedded via | upstream `pkg/provider`, no fork (section 2) |
 | Crossplane | v2 only |
 | Resource scope | Managed resources are namespaced only |
 | License | MPL-2.0 |
@@ -23,15 +23,11 @@ Out of scope: cluster-scoped managed resources, Crossplane v1, Compositions or c
 
 The provider runs in upjet v2 no-fork mode: the PostHog framework provider runs in-process and serves every resource. No resource goes through upjet's Terraform CLI path, because a resource registered on both paths panics at startup. The image contains only the provider binary; there is no Terraform CLI, provider download, or filesystem mirror at runtime.
 
-Fork: upstream keeps its provider constructor in `internal/provider`, which Go forbids importing from another module. The fork's `public-provider` branch moves it to `provider/` and updates imports; behavior and schema are unchanged. The tracking pipeline rebases and force-pushes this branch without human review, gated by the fork's unit tests and its external-import check (nested module `test/externalimport`, which imports the constructor from outside the module); both also run in the fork's CI.
+Upstream: since v1.0.28 upstream exports its provider constructor as `github.com/posthog/terraform-provider/pkg/provider` (PostHog/terraform-provider-posthog#192, resolving our issue #191), so the provider imports upstream directly. The fork `Cliftonz/terraform-provider-posthog` is retired; the fork steps of the tracking pipeline (section 9) are removed in a later change.
 
-Fork tags: each rebased commit is tagged `v<version>-public` (for example `v1.0.25-public`); a later fork fix for the same version gets `v<version>-public.N` with an incrementing suffix (for example `v1.0.25-public.2`). Tags never move, so every pin stays reachable after force-pushes. "Highest tag" means semver order, so `-public.10` ranks above `-public.2`, which ranks above `-public`.
+Pins: `go.mod` requires `github.com/posthog/terraform-provider v<version>` with no `replace`; the Makefile names the same version and tag (`TERRAFORM_PROVIDER_VERSION`, `TERRAFORM_PROVIDER_REF`) and the upstream repository for docs generation.
 
-Pins: `go.mod` requires `github.com/posthog/terraform-provider v<version>` and `replace`s it with the fork's highest tag for that version; the Makefile names the same upstream version for docs generation. The tracking pipeline bumps both in the same PR.
-
-Schema: `config/schema.json` is generated from the fork build, the code that ships, so CRDs cannot drift from the binary and generation never waits on the Terraform registry.
-
-Exit path: the fork stays until PostHog ships an importable constructor or upjet changes so one is no longer needed (section 14); then drop the `replace` and the fork. CRDs, groups, kinds, and external names must not change.
+Schema: `config/schema.json` is generated from the upstream build, the code that ships, so CRDs cannot drift from the binary and generation never waits on the Terraform registry.
 
 ## 3. Repository layout
 
@@ -266,14 +262,14 @@ The PostHog name is used descriptively only; no PostHog logo until PostHog grant
 
 Automation and agents never file issues, open PRs, comment, or react on repositories we do not own; the human reviews each draft under `docs/upstream/` and files it from their own account after checking the target's `CONTRIBUTING.md`, templates, signing requirements, and duplicates. Drafts follow each target repository's AI disclosure policy.
 
-- Public constructor: `docs/upstream/posthog-public-provider-issue.md` asks PostHog to expose the constructor, offering Option A (a public wrapper package) or Option B (move `internal/provider` to `provider/`), and links the fork branch as a working Option B; filed as [PostHog/terraform-provider-posthog#191](https://github.com/PostHog/terraform-provider-posthog/issues/191). No PR until a maintainer accepts.
+- Public constructor: `docs/upstream/posthog-public-provider-issue.md` asks PostHog to expose the constructor, offering Option A (a public wrapper package) or Option B (move `internal/provider` to `provider/`), and links the fork branch as a working Option B; filed as [PostHog/terraform-provider-posthog#191](https://github.com/PostHog/terraform-provider-posthog/issues/191). Resolved by upstream [#192](https://github.com/PostHog/terraform-provider-posthog/pull/192), released in v1.0.28, which moved the Go packages to `pkg/`; the fork is retired.
 - upjet: [comment on crossplane/upjet#788](https://github.com/crossplane/upjet/issues/788#issuecomment-6329830093) with fix PR [crossplane/upjet#792](https://github.com/crossplane/upjet/pull/792).
 - Possible security issues in upstream go through PostHog's private channel per `SECURITY.md`.
 - Upstream bugs found by e2e are drafted with a reproducer.
 
 ## 15. Provisional decisions (revisit)
 
-- Fork mechanics, tag scheme, pins, schema source: section 2.
+- Pins, schema source: section 2.
 - Groups, kinds, `v1alpha1` start, generated references, data sources: section 4.
 - Secret-only credentials, `ClusterProviderConfig`, environment variable rule: section 5.
 - Target platforms `linux/amd64` and `linux/arm64`: section 7.
