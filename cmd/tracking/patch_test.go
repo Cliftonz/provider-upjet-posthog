@@ -15,7 +15,7 @@ func diff(path, body string) string {
 }
 
 const pinHunk = `@@ -12,5 +12,5 @@
- export TERRAFORM_PROVIDER_REPO ?= https://github.com/Cliftonz/terraform-provider-posthog
+ export TERRAFORM_PROVIDER_REPO ?= https://github.com/PostHog/terraform-provider-posthog
 -export TERRAFORM_PROVIDER_VERSION ?= 1.0.25
 -export TERRAFORM_PROVIDER_REF ?= e708a31
 +export TERRAFORM_PROVIDER_VERSION ?= 1.0.26

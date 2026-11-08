@@ -23,7 +23,7 @@ Out of scope: cluster-scoped managed resources, Crossplane v1, Compositions or c
 
 The provider runs in upjet v2 no-fork mode: the PostHog framework provider runs in-process and serves every resource. No resource goes through upjet's Terraform CLI path, because a resource registered on both paths panics at startup. The image contains only the provider binary; there is no Terraform CLI, provider download, or filesystem mirror at runtime.
 
-Upstream: since v1.0.28 upstream exports its provider constructor as `github.com/posthog/terraform-provider/pkg/provider` (PostHog/terraform-provider-posthog#192, resolving our issue #191), so the provider imports upstream directly. The fork `Cliftonz/terraform-provider-posthog` is retired.
+Upstream: since v1.0.28 upstream exports its provider constructor as `github.com/posthog/terraform-provider/pkg/provider` (PostHog/terraform-provider-posthog#192, resolving our issue #191), so the provider imports upstream directly. The fork repository `Cliftonz/terraform-provider-posthog` was deleted on 2026-11-08.
 
 Pins: `go.mod` requires `github.com/posthog/terraform-provider v<version>` with no `replace`; the Makefile names the same version and tag (`TERRAFORM_PROVIDER_VERSION`, `TERRAFORM_PROVIDER_REF`) and the upstream repository for docs generation.
 
