@@ -12,13 +12,13 @@ setup() {
   mkdir hack
   cp "$ROOT/hack/repo-checks.sh" hack/
   git add hack
-  echo 'export TERRAFORM_PROVIDER_REF ?= v1.0.27-public' > Makefile
-  pin=v1.0.27-public
+  echo 'export TERRAFORM_PROVIDER_REF ?= v1.0.28' > Makefile
+  pin=v1.0.28
   deps=github.com/crossplane/upjet
 }
 
 stub_go() {
-  stub go "if [ \"\$1\" = list ]; then echo $deps; else echo '{\"Replace\":[{\"Old\":{\"Path\":\"github.com/posthog/terraform-provider\"},\"New\":{\"Version\":\"$pin\"}}]}'; fi"
+  stub go "if [ \"\$1\" = list ]; then echo $deps; else echo '{\"Require\":[{\"Path\":\"github.com/crossplane/upjet/v2\",\"Version\":\"v2.5.1\"},{\"Path\":\"github.com/posthog/terraform-provider\",\"Version\":\"$pin\"}]}'; fi"
 }
 
 @test "passes a consistent repository" {
@@ -52,10 +52,10 @@ stub_go() {
   [[ $output == *"cmd/tracking links the upstream provider"* ]]
 }
 
-@test "fails when the Makefile ref differs from the fork pin" {
-  pin=v1.0.26-public
+@test "fails when the Makefile ref differs from the go.mod require" {
+  pin=v1.0.27
   stub_go
   run hack/repo-checks.sh
   [ "$status" -eq 1 ]
-  [[ $output == *"does not match the go.mod fork pin v1.0.26-public"* ]]
+  [[ $output == *"does not match the go.mod require v1.0.27"* ]]
 }

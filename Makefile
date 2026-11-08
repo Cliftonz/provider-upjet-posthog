@@ -11,9 +11,9 @@ export TERRAFORM_VERSION ?= 1.5.7
 TERRAFORM_VERSION_VALID := $(shell [ "$(TERRAFORM_VERSION)" = "`printf "$(TERRAFORM_VERSION)\n1.6" | sort -V | head -n1`" ] && echo 1 || echo 0)
 
 export TERRAFORM_PROVIDER_SOURCE ?= posthog/posthog
-export TERRAFORM_PROVIDER_REPO ?= https://github.com/Cliftonz/terraform-provider-posthog
-export TERRAFORM_PROVIDER_VERSION ?= 1.0.27
-export TERRAFORM_PROVIDER_REF ?= v1.0.27-public.2
+export TERRAFORM_PROVIDER_REPO ?= https://github.com/PostHog/terraform-provider-posthog
+export TERRAFORM_PROVIDER_VERSION ?= 1.0.28
+export TERRAFORM_PROVIDER_REF ?= v1.0.28
 export TERRAFORM_PROVIDER_MODULE ?= github.com/posthog/terraform-provider
 export TERRAFORM_DOCS_PATH ?= docs/resources
 

@@ -16,9 +16,9 @@ if go list -deps ./cmd/tracking | grep '^github.com/posthog/terraform-provider';
   exit 1
 fi
 
-pin=$(go mod edit -json | jq -r '.Replace[] | select(.Old.Path == "github.com/posthog/terraform-provider") | .New.Version')
+pin=$(go mod edit -json | jq -r '.Require[] | select(.Path == "github.com/posthog/terraform-provider") | .Version')
 ref=$(sed -n 's/^export TERRAFORM_PROVIDER_REF ?= //p' Makefile)
 if [[ $ref != "$pin" && $ref != "${pin##*-}"* ]]; then
-  echo "Makefile TERRAFORM_PROVIDER_REF $ref does not match the go.mod fork pin $pin" >&2
+  echo "Makefile TERRAFORM_PROVIDER_REF $ref does not match the go.mod require $pin" >&2
   exit 1
 fi

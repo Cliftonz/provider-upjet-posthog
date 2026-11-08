@@ -4,7 +4,7 @@ import (
 	_ "embed"
 
 	ujconfig "github.com/crossplane/upjet/v2/pkg/config"
-	"github.com/posthog/terraform-provider/provider"
+	"github.com/posthog/terraform-provider/pkg/provider"
 
 	"github.com/Cliftonz/provider-upjet-posthog/internal/version"
 )
