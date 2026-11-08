@@ -78,10 +78,6 @@
 ## survey
 
 - Survey example omits linkedFlagIdRef to stay minimal.
-- The update changes targetingFlagFiltersJson from rollout 50 to 75; the hook asserts PostHog updated the targeting flag in place, keeping its id.
-- Known limitation: removing targetingFlagFiltersJson from the spec leaves the targeting flag in PostHog: targeting_flag_id is null while the filters are set, so the fork returns early without removing the flag.
-- Known limitation: setting both targetingFlagId and targetingFlagFiltersJson is unsupported; the fork does not refresh targetingFlagId from the response while the filters are set.
-- Import leaves targeting_flag_id mapped from the response targeting flag id; the import step passes.
 
 ## warehouse
 
@@ -100,5 +96,15 @@
 - Experiment holdoutId: needs a holdout, which no kind manages.
 - logs AlertDestination slackChannelId, slackChannelName and slackWorkspaceId: need a Slack integration.
 - project Member role: see project above.
-- Survey archived, formContentJson, translationsJson, linkedFlagId, linkedInsightId and targetingFlagId: the fork documents no shape for formContentJson and translationsJson; the others were not added in this pass.
+- Survey archived, formContentJson, translationsJson, linkedFlagId, linkedInsightId and targetingFlagId: upstream documents no shape for formContentJson and translationsJson; the others were not added in this pass.
+- Survey targetingFlagFiltersJson: see Known gaps.
 - AccessControl organizationMember and resourceId: member-scoped and object-scoped rules; not added in this pass.
+
+## Known gaps
+
+The provider builds on upstream v1.0.28 with no fork (2026-11-07), so four defects the fork fixed are back until upstream fixes them; the provider carries no workaround.
+
+- Survey targetingFlagFiltersJson: the survey is created with its targeting flag, but upstream stores that flag's id as targeting_flag_id, so the next update sends remove_targeting_flag and every later update fails with 400 "Targeting Feature Flag with this ID does not exist". The Survey example leaves the field out.
+- ExternalDataSource schemas: upstream keeps schemas an ordered list that requires replacement, and PostHog returns it sorted by name, so a spec in any other order shows a diff that requires replacement and the MR never becomes Synced.
+- Project delete: a repeat delete while PostHog is still purging the project gets 400 "This project is already being deleted." and the reconcile logs an error until the purge finishes.
+- FeatureFlag delete: a repeat delete of a soft-deleted flag sends its renamed key `<key>:deleted:<id>` and PostHog answers 400 invalid_key, leaving the MR on its finalizer.
