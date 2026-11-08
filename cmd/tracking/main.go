@@ -15,7 +15,6 @@ import (
 )
 
 const usage = `usage:
-  tracking fork-tag VERSION < git-ls-remote-tags
   tracking pending ACKS UPSTREAM_RELEASES_JSON OUR_RELEASES_JSON
   tracking skips ACKS
   tracking schema-diff OLD_SCHEMA NEW_SCHEMA
@@ -37,8 +36,6 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 	var lines []string
 	var err error
 	switch args[0] {
-	case "fork-tag":
-		lines = []string{highestForkTag(readLines(stdin), args[1])}
 	case "pending":
 		lines, err = pending(args[1], args[2], args[3])
 	case "skips":

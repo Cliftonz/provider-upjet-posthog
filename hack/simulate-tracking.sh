@@ -10,7 +10,6 @@
 set -euo pipefail
 
 export UPSTREAM_REPO=PostHog/terraform-provider-posthog
-export FORK_REPO=Cliftonz/terraform-provider-posthog
 repo=$(git rev-parse --show-toplevel)
 work=$(mktemp -d)
 echo "simulate-tracking: scratch directory $work"
@@ -86,32 +85,8 @@ if [ "$pending" != "$version" ]; then
   exit 1
 fi
 
-step "fork"
-git clone -q "https://github.com/$FORK_REPO.git" "$work/fork"
-git -C "$work/fork" remote set-url --push origin file:///dev/null/push-disabled
-fork_tag=$(git ls-remote --tags "https://github.com/$FORK_REPO.git" | "$work/tracking" fork-tag "$version")
-cp -a "$work/fork" "$work/fork-rebase"
-if [ -n "$fork_tag" ]; then
-  git -C "$work/fork-rebase" tag -d "v$version-public"
-fi
-step "fork rebase onto upstream v$version"
-hack/fork-rebase.sh "$version" "$work/fork-rebase"
-if [ -n "$fork_tag" ]; then
-  step "fork checks on the existing tag $fork_tag"
-  git -C "$work/fork" -c advice.detachedHead=false checkout -q "$fork_tag"
-  hack/fork-checks.sh "$work/fork"
-else
-  fork_tag=v$version-public
-  step "no fork tag published; resolving $fork_tag from the rebased scratch fork"
-  rm -rf "$work/fork"
-  mv "$work/fork-rebase" "$work/fork"
-  export GIT_CONFIG_COUNT=4
-  export GIT_CONFIG_KEY_3=url.$work/fork.insteadOf GIT_CONFIG_VALUE_3=https://github.com/$FORK_REPO
-  export GOPRIVATE=github.com/$FORK_REPO GOMODCACHE=$work/gomod GOFLAGS=-modcacherw
-fi
-
 step "bump, generate, build, unit tests"
-hack/bump.sh "$version" "$fork_tag" "$work/fork"
+hack/bump.sh "$version"
 make generate
 make -j2 build
 make test

@@ -6,6 +6,6 @@
 # usage: labels.sh
 set -euo pipefail
 
-for label in upstream-tracking fork-rebase fork-fix generation build test breaking-change new-resource publish release skip; do
+for label in upstream-tracking generation build test breaking-change new-resource publish release skip; do
   gh label create "$label" --color ededed --force
 done

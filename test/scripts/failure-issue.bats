@@ -13,15 +13,15 @@ setup() {
 
 @test "opens a labeled issue when none with the title is open" {
   stub gh
-  run "$ROOT/hack/failure-issue.sh" 1.0.2 "fork rebase" fork-rebase
+  run "$ROOT/hack/failure-issue.sh" 1.0.2 build build
   [ "$status" -eq 0 ]
-  grep -qF "gh issue create --title Upstream v1.0.2: fork rebase --label upstream-tracking --label fork-rebase --body Upstream release: https://github.com/PostHog/terraform-provider-posthog/releases/tag/v1.0.2" "$CALLS"
+  grep -qF "gh issue create --title Upstream v1.0.2: build --label upstream-tracking --label build --body Upstream release: https://github.com/PostHog/terraform-provider-posthog/releases/tag/v1.0.2" "$CALLS"
   grep -qxF "Workflow run: https://github.com/owner/repo/actions/runs/42" "$CALLS"
 }
 
 @test "comments on the open issue with the same title" {
   stub gh '[ "$1 $2" != "issue list" ] || echo 7'
-  run "$ROOT/hack/failure-issue.sh" 1.0.2 "fork rebase" fork-rebase
+  run "$ROOT/hack/failure-issue.sh" 1.0.2 build build
   [ "$status" -eq 0 ]
   grep -qF "gh issue comment 7 --body Upstream release:" "$CALLS"
   ! grep -q "issue create" "$CALLS"

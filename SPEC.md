@@ -23,7 +23,7 @@ Out of scope: cluster-scoped managed resources, Crossplane v1, Compositions or c
 
 The provider runs in upjet v2 no-fork mode: the PostHog framework provider runs in-process and serves every resource. No resource goes through upjet's Terraform CLI path, because a resource registered on both paths panics at startup. The image contains only the provider binary; there is no Terraform CLI, provider download, or filesystem mirror at runtime.
 
-Upstream: since v1.0.28 upstream exports its provider constructor as `github.com/posthog/terraform-provider/pkg/provider` (PostHog/terraform-provider-posthog#192, resolving our issue #191), so the provider imports upstream directly. The fork `Cliftonz/terraform-provider-posthog` is retired; the fork steps of the tracking pipeline (section 9) are removed in a later change.
+Upstream: since v1.0.28 upstream exports its provider constructor as `github.com/posthog/terraform-provider/pkg/provider` (PostHog/terraform-provider-posthog#192, resolving our issue #191), so the provider imports upstream directly. The fork `Cliftonz/terraform-provider-posthog` is retired.
 
 Pins: `go.mod` requires `github.com/posthog/terraform-provider v<version>` with no `replace`; the Makefile names the same version and tag (`TERRAFORM_PROVIDER_VERSION`, `TERRAFORM_PROVIDER_REF`) and the upstream repository for docs generation.
 
@@ -170,17 +170,16 @@ Each run acts on the oldest pending version according to its `upstream/v<version
 | merged, unreleased | dispatch `tag.yaml` with the merge commit, the single release path |
 | closed, unmerged | open a `release` issue |
 
-1. Fork: if a fork tag exists for the version, run the fork checks (the fork's full `go test ./...`, acceptance tests skipped without `TF_ACC`, and the external-import check) against the highest one; a failure opens a `fork-fix` issue. Otherwise rebase `public-provider` onto the upstream tag (moving new files under `internal/provider` to `provider/`), pass both fork checks, then push the branch and tag `v<version>-public`.
-2. Bump: set the pins (section 2) and raise our Go toolchain to upstream's `go` directive; a dependency conflict with upjet fails as `build`.
-3. Regenerate and build.
-4. Gates: the breaking-change gate (against the previous release: in `config/schema.json` a removed resource, removed field, changed field type, added required field, or optional field made required; in `package/crds` a removed CRD, version, or property, a changed type, array item type, or map value schema, a newly required property, or a new `x-kubernetes-validations` rule) and the new-resource gate (an upstream resource absent from 4.2). Each passes for changes listed for that upstream version in `hack/upstream-acks.yaml`; a human adds entries alongside any needed config and reruns.
-5. Open the PR with auto-merge enabled; failing to enable auto-merge fails the step. CI and e2e gate the merge.
+1. Bump: set the pins (section 2) to the upstream version and raise our Go toolchain to upstream's `go` directive; a dependency conflict with upjet fails as `build`.
+2. Regenerate and build.
+3. Gates: the breaking-change gate (against the previous release: in `config/schema.json` a removed resource, removed field, changed field type, added required field, or optional field made required; in `package/crds` a removed CRD, version, or property, a changed type, array item type, or map value schema, a newly required property, or a new `x-kubernetes-validations` rule) and the new-resource gate (an upstream resource absent from 4.2). Each passes for changes listed for that upstream version in `hack/upstream-acks.yaml`; a human adds entries alongside any needed config and reruns.
+4. Open the PR with auto-merge enabled; failing to enable auto-merge fails the step. CI and e2e gate the merge.
 
-No job that holds the GitHub App token runs upstream code: steps 1 to 4 run in jobs with a read-only `GITHUB_TOKEN` and hand a git bundle or patch to jobs that only push, open the PR, and enable auto-merge. No process that holds the token links upstream code: those jobs build `cmd/tracking`, whose dependency graph excludes the upstream module (checked in CI), while `cmd/tracking-resources`, which reads our provider config, runs only in the unprivileged generate job. Checkouts never persist credentials; tokens reach only the steps that push or call `gh`. The PR job accepts a patch touching only `apis/`, `internal/controller/`, `package/crds/`, `examples-generated/`, `config/schema.json`, `config/provider-metadata.yaml`, `go.mod`, `go.sum`, and the Makefile's version pin lines; any other path fails as `generation`, naming the paths.
+No job that holds the GitHub App token runs upstream code: steps 1 to 3 run in a job with a read-only `GITHUB_TOKEN` and hand a patch to a job that only pushes, opens the PR, and enables auto-merge. No process that holds the token links upstream code: those jobs build `cmd/tracking`, whose dependency graph excludes the upstream module (checked in CI), while `cmd/tracking-resources`, which reads our provider config, runs only in the unprivileged generate job. Checkouts never persist credentials; tokens reach only the steps that push or call `gh`. The PR job accepts a patch touching only `apis/`, `internal/controller/`, `package/crds/`, `examples-generated/`, `config/schema.json`, `config/provider-metadata.yaml`, `go.mod`, `go.sum`, and the Makefile's version pin lines; any other path fails as `generation`, naming the paths.
 
-Reruns reuse an existing `upstream/v<version>` branch, PR, and fork tags, and tag and publish skip work already done, so a partial release is completed rather than duplicated.
+Reruns reuse an existing `upstream/v<version>` branch and PR, and tag and publish skip work already done, so a partial release is completed rather than duplicated.
 
-Any failure, in any workflow, opens an issue, runs nothing after the failed step, and leaves the version unreleased. The issue is titled `Upstream v<version>: <failed step>` and labeled `upstream-tracking` plus one of `fork-rebase`, `fork-fix`, `generation`, `build`, `test`, `breaking-change`, `new-resource`, `publish`, `release`. The body links the upstream release and the workflow run and, for schema failures, lists the affected resources and fields; it contains no log excerpts. An existing open issue with the same title gets a comment instead.
+Any failure, in any workflow, opens an issue, runs nothing after the failed step, and leaves the version unreleased. The issue is titled `Upstream v<version>: <failed step>` and labeled `upstream-tracking` plus one of `generation`, `build`, `test`, `breaking-change`, `new-resource`, `publish`, `release`. The body links the upstream release and the workflow run and, for schema failures, lists the affected resources and fields; it contains no log excerpts. An existing open issue with the same title gets a comment instead.
 
 ## 10. Versioning and release
 
@@ -192,7 +191,6 @@ Our version equals the upstream version it embeds; the same string is the git ta
 |---|---|---|
 | Generation | diff check | Generated code, CRDs, examples |
 | Unit | `go test` | `internal/clients` credential mapping, including the malformed JSON and missing `api_key` conditions; external name functions |
-| Fork | fork CI and section 9 | Upstream unit tests and the external-import check |
 | Manifest validation | kind, server-side dry-run | Every example in `examples/namespaced` |
 | End to end | uptest on kind | Every kind except `Table`, against self-hosted PostHog |
 
@@ -211,12 +209,11 @@ Additional cases:
 
 Manual steps by the human:
 
-1. Create a GitHub App with contents, pull-requests, actions, and issues write permissions; install it on this repository and the fork; store its credentials as repository secrets. Enable "Allow auto-merge" on this repository. Run `hack/labels.sh` to create the issue labels.
-2. Create fork tag `v1.0.25-public` on `public-provider` after it passes the fork unit tests and external-import check (done 2026-10-30).
-3. Create Upbound organization `cliftonz` and repository `provider-upjet-posthog` (done); create a robot in `cliftonz`, give it a team with write permission on the repository, create a robot token and store its access ID as `XPKG_ACCESS_ID` and its token as `XPKG_TOKEN`. A personal access token is refused by `docker login xpkg.upbound.io`. Make the GHCR package public.
-4. Publish the first release (section 10).
-5. Request review in `#upbound` on Crossplane Slack with the repo URL, account, and repository name (unverified against Upbound docs).
-6. After approval, `up repository update provider-upjet-posthog --publish` (up v0.39.0 or later).
+1. Create a GitHub App with contents, pull-requests, actions, and issues write permissions; install it on this repository; store its credentials as repository secrets. Enable "Allow auto-merge" on this repository. Run `hack/labels.sh` to create the issue labels.
+2. Create Upbound organization `cliftonz` and repository `provider-upjet-posthog` (done); create a robot in `cliftonz`, give it a team with write permission on the repository, create a robot token and store its access ID as `XPKG_ACCESS_ID` and its token as `XPKG_TOKEN`. A personal access token is refused by `docker login xpkg.upbound.io`. Make the GHCR package public.
+3. Publish the first release (section 10).
+4. Request review in `#upbound` on Crossplane Slack with the repo URL, account, and repository name (unverified against Upbound docs).
+5. After approval, `up repository update provider-upjet-posthog --publish` (up v0.39.0 or later).
 
 Until the App secrets exist, a `gate` job makes upstream tracking skip with a `::notice::`, tag and publish use `GITHUB_TOKEN` and open no failure issues, and the CI and e2e report jobs skip opening failure issues with a notice. Until the Upbound secrets exist, publish pushes to GHCR and releases without the Upbound push.
 
@@ -249,8 +246,6 @@ The PostHog name is used descriptively only; no PostHog logo until PostHog grant
 
 | Label | Action |
 |---|---|
-| `fork-rebase` | Resolve the conflict on `public-provider` by hand, push, rerun |
-| `fork-fix` | Fix the fork, tag the fix with the next suffix (`v<version>-public.N`), rerun |
 | `generation`, `build`, `publish` | Fix and rerun |
 | `release` | Inspect the tag or PR; a version tagged but unpublishable is skipped, and its fix ships with the next upstream release |
 | `test` | Reproduce with uptest; decide whether the cause is ours, upstream, or the harness |

@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"regexp"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/util/version"
 )
@@ -18,24 +16,6 @@ type release struct {
 	Tag        string `json:"tag_name"`
 	Draft      bool   `json:"draft"`
 	Prerelease bool   `json:"prerelease"`
-}
-
-func highestForkTag(refs []string, upstreamVersion string) string {
-	pattern := regexp.MustCompile(`^v` + regexp.QuoteMeta(upstreamVersion) + `-public(\.\d+)?$`)
-	var best string
-	var bestVersion *version.Version
-	for _, ref := range refs {
-		fields := strings.Fields(ref)
-		tag := strings.TrimPrefix(fields[len(fields)-1], "refs/tags/")
-		if !pattern.MatchString(tag) {
-			continue
-		}
-		v := version.MustParseSemantic(tag)
-		if bestVersion == nil || v.GreaterThan(bestVersion) {
-			best, bestVersion = tag, v
-		}
-	}
-	return best
 }
 
 func latestRelease(ours []release) *version.Version {

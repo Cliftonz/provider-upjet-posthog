@@ -9,29 +9,6 @@ import (
 	"testing"
 )
 
-func TestHighestForkTag(t *testing.T) {
-	refs := strings.Split(`a1	refs/tags/v1.0.25
-a2	refs/tags/v1.0.25-public
-a3	refs/tags/v1.0.25-public.2
-a4	refs/tags/v1.0.25-public.10
-a5	refs/tags/v1.0.25-public.10^{}
-a6	refs/tags/v1.0.25-publicx
-a7	refs/tags/v1.0.250-public.99
-a8	refs/tags/v1.0.26-public
-a9	refs/tags/v1.0.26-rc.1-public.3`, "\n")
-
-	cases := map[string]string{
-		"1.0.25": "v1.0.25-public.10",
-		"1.0.26": "v1.0.26-public",
-		"1.0.30": "",
-	}
-	for v, want := range cases {
-		if got := highestForkTag(refs, v); got != want {
-			t.Errorf("highestForkTag(%q) = %q, want %q", v, got, want)
-		}
-	}
-}
-
 func TestOldestPending(t *testing.T) {
 	upstream := []release{
 		{Tag: "v1.0.28"},

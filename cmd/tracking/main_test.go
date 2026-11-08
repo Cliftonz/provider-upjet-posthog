@@ -78,15 +78,10 @@ func TestRunPatchPathsFailsAndPrintsDisallowedPaths(t *testing.T) {
 	}
 }
 
-func TestRunForkTagReadsLsRemoteFromStdin(t *testing.T) {
-	out, err := runTracking([]string{"fork-tag", v27}, "a\trefs/tags/v1.0.27-public\nb\trefs/tags/v1.0.27-public.1\n")
-	if err != nil || out != "v1.0.27-public.1\n" {
-		t.Errorf("run(fork-tag) = %q, %v", out, err)
-	}
-}
-
 func TestRunRejectsUnknownCommands(t *testing.T) {
-	if _, err := runTracking([]string{"publish"}, ""); err == nil || err.Error() != usage {
-		t.Errorf("run(publish) error = %v, want usage", err)
+	for _, command := range []string{"publish", "fork-tag"} {
+		if _, err := runTracking([]string{command, v27}, ""); err == nil || err.Error() != usage {
+			t.Errorf("run(%s) error = %v, want usage", command, err)
+		}
 	}
 }
