@@ -133,6 +133,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       UPSTREAM_VERSION: ${{ needs.detect.outputs.version }}
+      GOTOOLCHAIN: auto
     steps:
       - name: Setup
         run: echo "build|setup" > "$RUNNER_TEMP/step"
